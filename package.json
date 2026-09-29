@@ -1,0 +1,71 @@
+{
+  "name": "@arsel.sa/mcp",
+  "version": "0.1.0",
+  "description": "The official Arsel MCP server: let AI agents work with your Arsel contacts, audiences, campaigns and templates.",
+  "license": "MIT",
+  "author": "Arsel (https://arsel.sa)",
+  "homepage": "https://github.com/Arsel-SA/arsel-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Arsel-SA/arsel-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Arsel-SA/arsel-mcp/issues"
+  },
+  "keywords": [
+    "arsel",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agents",
+    "email",
+    "sms",
+    "marketing"
+  ],
+  "type": "module",
+  "bin": {
+    "arsel-mcp": "dist/index.js"
+  },
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
+    "./http": {
+      "types": "./dist/transports/http.d.ts",
+      "default": "./dist/transports/http.js"
+    }
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "start": "node dist/index.js",
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "openapi:update": "node scripts/update-openapi.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "@types/node": "22.18.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
