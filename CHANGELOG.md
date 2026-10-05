@@ -5,6 +5,8 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-05
+
 ### Added
 
 - `list-segments` and `get-segment`: find the segments a campaign can target. Segment rules stay in the dashboard.
