@@ -91,6 +91,7 @@ claude mcp add --transport http arsel https://mcp.arsel.sa/mcp \
 | Contacts | `list-contacts` `get-contact` `create-contact` `update-contact` |
 | Lists | `list-lists` `get-list` `create-list` `update-list` `add-contacts-to-list` `remove-contacts-from-list` |
 | Tags | `list-tags` `get-tag` `create-tag` `update-tag` `add-tag-to-contacts` `remove-tag-from-contacts` |
+| Segments | `list-segments` `get-segment` |
 | Data model | `list-contact-properties` `get-contact-property` `create-contact-property` `update-contact-property` `list-events` `get-event` `create-event` `update-event` |
 | Email campaigns | `list-email-campaigns` `get-email-campaign` `create-email-campaign` `update-email-campaign` |
 | SMS campaigns | `list-sms-campaigns` `get-sms-campaign` `create-sms-campaign` `update-sms-campaign` |
@@ -99,6 +100,7 @@ claude mcp add --transport http arsel https://mcp.arsel.sa/mcp \
 | Templates | `list-templates` `get-template` `create-template` `update-template` `list-gallery-categories` `list-gallery-templates` `get-gallery-template` `copy-gallery-template` |
 | Message logs | `list-emails` `get-email` `list-sms-messages` `get-sms-message` `list-whatsapp-messages` `get-whatsapp-message` `list-push-notifications` `get-push-notification` |
 | Push devices | `list-contact-push-devices` `get-push-device-import` |
+| Account | `list-email-domains` `list-sms-senders` `get-usage` |
 
 There are no delete, cancel or send tools. Read tools are marked read-only, so clients can run them without asking you each time. Create and update tools ask for your approval first.
 

@@ -141,4 +141,24 @@ export const audienceTools: ArselTool[] = [
     description: `Remove a tag from contacts. ${AUTOMATION_NOTE}`,
     inputSchema: z.object({ id: id('tag'), contact_ids: contactIds }),
   },
+
+  {
+    name: 'list-segments',
+    title: 'List Segments',
+    scope: 'read',
+    method: 'GET',
+    path: '/segments',
+    description: `List segments with their contact counts. Segments are dynamic audiences defined by rules; the rules are managed in the Arsel dashboard and this server only reads them. \`contact_count\` is as of \`counted_at\`, and null for a segment that has not been counted yet or whose rules changed since. ${QUIET_IDS}`,
+    inputSchema: z.object({ ...pagination, search: search('segment name') }),
+  },
+  {
+    name: 'get-segment',
+    title: 'Get Segment',
+    scope: 'read',
+    method: 'GET',
+    path: '/segments/{id}',
+    description:
+      'Get one segment and its last contact count. Its rules are not returned.',
+    inputSchema: z.object({ id: id('segment') }),
+  },
 ];

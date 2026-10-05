@@ -7829,6 +7829,408 @@
           "WhatsApp"
         ]
       }
+    },
+    "/v1/email/domains": {
+      "get": {
+        "description": "Retrieve a paginated list of the organization's sending domains and their verification status. Domains are added and verified in the dashboard.",
+        "operationId": "email.domains.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sending domains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailDomainListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List sending domains",
+        "tags": [
+          "Email Domains"
+        ]
+      }
+    },
+    "/v1/sms/senders": {
+      "get": {
+        "description": "Retrieve a paginated list of the organization's approved SMS sender names. Senders awaiting approval or rejected are not included.",
+        "operationId": "sms.senders.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of approved SMS senders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsSenderListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List SMS senders",
+        "tags": [
+          "SMS Senders"
+        ]
+      }
+    },
+    "/v1/segments": {
+      "get": {
+        "description": "Retrieve a paginated list of segments, most recent first. Segments are dynamic audiences defined by rules; the rules are managed in the dashboard and are not part of this API.",
+        "operationId": "segments.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search by segment name",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of segments",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List all segments",
+        "tags": [
+          "Segments"
+        ]
+      }
+    },
+    "/v1/segments/{id}": {
+      "get": {
+        "description": "Retrieve a segment by ID.",
+        "operationId": "segments.get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Segment details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Segment not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get a segment",
+        "tags": [
+          "Segments"
+        ]
+      }
+    },
+    "/v1/usage": {
+      "get": {
+        "description": "Retrieve the current period's usage against the organization's plan limits. The period is the UTC calendar month, not the billing cycle.",
+        "operationId": "usage.get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Usage for the current period",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get usage",
+        "tags": [
+          "Usage"
+        ]
+      }
     }
   },
   "info": {
@@ -12339,6 +12741,349 @@
           "object",
           "has_more",
           "data"
+        ]
+      },
+      "EmailDomainResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "mail.acme.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified",
+              "failed"
+            ],
+            "example": "verified",
+            "description": "Only a `verified` domain can send: any address at it is accepted as `from`."
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "verified_at",
+          "created_at"
+        ]
+      },
+      "EmailDomainListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailDomainResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "SmsSenderResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "sender_name": {
+            "type": "string",
+            "example": "AcmeStore",
+            "description": "The value to pass as `from` when sending SMS."
+          },
+          "country": {
+            "type": "string",
+            "example": "KSA",
+            "description": "The country this sender is approved to send to, as SMS campaigns report it."
+          },
+          "purposes": {
+            "type": "array",
+            "example": [
+              "transactional",
+              "marketing"
+            ],
+            "description": "What the sender is registered for. Campaigns need `marketing`; messages sent through `POST /v1/sms/send` need `transactional`.",
+            "items": {
+              "type": "string",
+              "enum": [
+                "transactional",
+                "marketing"
+              ]
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "sender_name",
+          "country",
+          "purposes",
+          "created_at"
+        ]
+      },
+      "SmsSenderListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SmsSenderResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "SegmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "VIP customers"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Spent over 1,000 SAR in the last 90 days"
+          },
+          "contact_count": {
+            "type": "number",
+            "nullable": true,
+            "example": 420,
+            "description": "Contacts matching the segment when it was last counted. `null` if it has not been counted yet, or its rules changed since."
+          },
+          "counted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-03-08T12:00:00.000Z",
+            "description": "When `contact_count` was computed."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "contact_count",
+          "counted_at",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "SegmentListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SegmentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "UsageMeterDto": {
+        "type": "object",
+        "properties": {
+          "used": {
+            "type": "number",
+            "example": 18240
+          },
+          "limit": {
+            "type": "number",
+            "nullable": true,
+            "example": 50000,
+            "description": "The plan's limit. `null` means the plan sets no limit."
+          },
+          "remaining": {
+            "type": "number",
+            "nullable": true,
+            "example": 31760,
+            "description": "What is left of `limit`. `null` when there is no limit."
+          }
+        },
+        "required": [
+          "used",
+          "limit",
+          "remaining"
+        ]
+      },
+      "EmailUsageDto": {
+        "type": "object",
+        "properties": {
+          "marketing": {
+            "$ref": "#/components/schemas/UsageMeterDto"
+          },
+          "transactional": {
+            "$ref": "#/components/schemas/UsageMeterDto"
+          }
+        },
+        "required": [
+          "marketing",
+          "transactional"
+        ]
+      },
+      "UsageResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "usage",
+            "enum": [
+              "usage"
+            ]
+          },
+          "period_start": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-01T00:00:00.000Z"
+          },
+          "period_end": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-04-01T00:00:00.000Z",
+            "description": "Exclusive: the instant the next period starts."
+          },
+          "emails": {
+            "$ref": "#/components/schemas/EmailUsageDto"
+          },
+          "sms": {
+            "description": "SMS credits. One credit is one message part, so a long message uses several.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageMeterDto"
+              }
+            ]
+          },
+          "whatsapp": {
+            "description": "WhatsApp messages.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageMeterDto"
+              }
+            ]
+          },
+          "push": {
+            "description": "Push notifications.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageMeterDto"
+              }
+            ]
+          },
+          "in_app": {
+            "description": "In-app messages.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageMeterDto"
+              }
+            ]
+          },
+          "automation_runs": {
+            "$ref": "#/components/schemas/UsageMeterDto"
+          },
+          "contacts": {
+            "description": "Contacts in the organization right now, against the plan limit. Not a per-period counter.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UsageMeterDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "object",
+          "period_start",
+          "period_end",
+          "emails",
+          "sms",
+          "whatsapp",
+          "push",
+          "in_app",
+          "automation_runs",
+          "contacts"
         ]
       }
     }

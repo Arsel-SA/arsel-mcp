@@ -52,7 +52,7 @@ const emailFields = {
     .email()
     .optional()
     .describe(
-      "Sender address. Its domain must be verified in the organization; ask the user if you don't know one.",
+      "Sender address at one of the organization's `verified` domains, from list-email-domains. Earlier campaigns in list-email-campaigns show which addresses are in use; ask the user only if that leaves it unclear.",
     ),
   reply_to: z.email().optional(),
   template_id: z
@@ -76,7 +76,7 @@ const smsFields = {
     .max(11)
     .optional()
     .describe(
-      "Pre-approved sender name, 3-11 characters. Ask the user if you don't know it.",
+      'Approved sender name, 3-11 characters, from list-sms-senders. It must be registered for `marketing`.',
     ),
   ...audience,
 };

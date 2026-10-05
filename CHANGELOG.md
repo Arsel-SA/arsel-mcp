@@ -3,6 +3,18 @@
 All notable changes to `@arsel.sa/mcp`. Format follows [Keep a Changelog](https://keepachangelog.com/),
 versioning follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `list-segments` and `get-segment`: find the segments a campaign can target. Segment rules stay in the dashboard.
+- `list-email-domains` and `list-sms-senders`: find a verified sending domain or an approved SMS sender for a campaign's `from`.
+- `get-usage`: this month's usage against the plan's limits.
+
+### Changed
+
+- Campaign tools point the agent at these tools for senders and segments instead of asking the user.
+
 ## [0.1.0] - 2026-09-30
 
 ### Added

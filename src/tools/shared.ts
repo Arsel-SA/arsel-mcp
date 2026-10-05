@@ -37,7 +37,7 @@ export const QUIET_IDS =
   "Don't read ids or timestamps back to the user unless they ask for them.";
 
 export const AUDIENCE_NOTE =
-  'The audience is the union of `list_ids`, `tag_ids` and `segment_ids`. Find lists with list-lists and tags with list-tags; segments are managed in the Arsel dashboard.';
+  'The audience is the union of `list_ids`, `tag_ids` and `segment_ids`. Find lists with list-lists, tags with list-tags and segments with list-segments.';
 
 export const DRAFT_NOTE =
   'The campaign is saved as a `draft`. This server cannot send or schedule it: the user does that from the Arsel dashboard.';

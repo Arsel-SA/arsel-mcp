@@ -1,3 +1,4 @@
+import { accountTools } from './account.js';
 import { audienceTools } from './audiences.js';
 import { campaignTools } from './campaigns.js';
 import { contactTools } from './contacts.js';
@@ -13,4 +14,5 @@ export const ALL_TOOLS: readonly ArselTool[] = [
   ...templateTools,
   ...dataModelTools,
   ...messageTools,
+  ...accountTools,
 ];
