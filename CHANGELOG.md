@@ -5,6 +5,10 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-12
+
+The first stable release, and the first published to npm. Tool names and inputs now follow semantic versioning.
+
 ### Added
 
 - `create-segment` and `update-segment`: build a segment from the same rules as the dashboard's segment builder (contact fields and custom properties, lists and tags, channel status, engagement counts and dates, engagement with one campaign or automation, and events with conditions on their data), in `and` / `or` groups that nest.

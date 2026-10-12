@@ -4,8 +4,6 @@ An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). 
 
 It is a thin client over the [Arsel API](https://docs.arsel.sa). Every tool is one API call made as you, on the organization you connect, so the agent sees exactly what you'd see through the API.
 
-> **Preview.** The hosted server at `mcp.arsel.sa` is live: connect with your Arsel account as described below. The `@arsel.sa/mcp` npm package is not published yet, so the `npx` commands below don't work today. Until it is, build from source (see [Development](#development)) and run `node dist/index.js` in place of `npx @arsel.sa/mcp`.
-
 > **Drafts only.** This server cannot send or schedule messages. Campaigns it creates are saved as drafts, and you send them from the Arsel dashboard.
 
 ## Requirements
