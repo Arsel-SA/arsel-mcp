@@ -2317,7 +2317,7 @@
         ]
       },
       "get": {
-        "description": "Retrieve a paginated list of contacts. Supports search, filtering by list/tag, and sorting.",
+        "description": "Retrieve a paginated list of contacts. Supports search, filtering by list/tag/segment, and sorting.",
         "operationId": "contacts.list",
         "parameters": [
           {
@@ -2396,6 +2396,16 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "name": "segment_id",
+            "required": false,
+            "in": "query",
+            "description": "Only the members of this segment, as of its last count (`counted_at` on the segment). Returns 409 `segment_not_ready` while the segment is `processing`.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2411,6 +2421,26 @@
           },
           "401": {
             "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`segment_id` does not name a segment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The segment is still `processing` (`segment_not_ready`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -7832,7 +7862,7 @@
     },
     "/v1/email/domains": {
       "get": {
-        "description": "Retrieve a paginated list of the organization's sending domains and their verification status. Domains are added and verified in the dashboard.",
+        "description": "Retrieve a paginated list of the organization's sending domains and their verification status. Register one with `POST /v1/email/domains`.",
         "operationId": "email.domains.list",
         "parameters": [
           {
@@ -7912,6 +7942,100 @@
           }
         ],
         "summary": "List sending domains",
+        "tags": [
+          "Email Domains"
+        ]
+      },
+      "post": {
+        "description": "Register a domain to send from and get the DNS records to publish at its DNS provider. The domain starts `pending` and becomes `verified` once the required records are found; this is checked periodically.\n\nThe call is idempotent: registering a domain the organization already has returns its current state. After publishing the records, call `POST /v1/email/domains/{id}/verify` to check them without waiting.",
+        "operationId": "email.domains.create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterEmailDomainDevApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The domain and its DNS records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailDomainDetailResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The domain, or a parent or subdomain of it, is verified by another organization (`domain_unavailable`), or the organization has reached its plan's domain limit (`domain_limit_reached`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another domain is being registered for the organization. Register domains one at a time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Register a sending domain",
         "tags": [
           "Email Domains"
         ]
@@ -8006,7 +8130,7 @@
     },
     "/v1/segments": {
       "get": {
-        "description": "Retrieve a paginated list of segments, most recent first. Segments are dynamic audiences defined by rules; the rules are managed in the dashboard and are not part of this API.",
+        "description": "Retrieve a paginated list of segments, most recent first. Segments are dynamic audiences defined by rules.",
         "operationId": "segments.list",
         "parameters": [
           {
@@ -8098,6 +8222,80 @@
         "tags": [
           "Segments"
         ]
+      },
+      "post": {
+        "description": "Create a segment from a rule tree. The members are computed in the background: the segment is returned with `status: processing` and becomes `ready` once they are.",
+        "operationId": "segments.create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSegmentDevApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Segment created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid body or filter, or the organization has reached its segment limit (`segment_limit_reached`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create a segment",
+        "tags": [
+          "Segments"
+        ]
       }
     },
     "/v1/segments/{id}": {
@@ -8174,6 +8372,184 @@
         "tags": [
           "Segments"
         ]
+      },
+      "patch": {
+        "description": "Update a segment. Sending `filter` replaces the whole rule tree and recomputes the members in the background; changing only the name or description leaves them as they are.",
+        "operationId": "segments.update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSegmentDevApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Segment updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Segment not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid body or filter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Update a segment",
+        "tags": [
+          "Segments"
+        ]
+      },
+      "delete": {
+        "description": "Soft-delete a segment. Returns 409 `segment_in_use` while a scheduled or sending campaign targets it.",
+        "operationId": "segments.remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Segment ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Segment deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Segment not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A scheduled or sending campaign targets the segment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Delete a segment",
+        "tags": [
+          "Segments"
+        ]
       }
     },
     "/v1/usage": {
@@ -8229,6 +8605,1126 @@
         "summary": "Get usage",
         "tags": [
           "Usage"
+        ]
+      }
+    },
+    "/v1/email/domains/{id}": {
+      "get": {
+        "description": "Retrieve a sending domain with its DNS records and their status as of the last check.",
+        "operationId": "email.domains.get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Domain ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The domain and its DNS records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailDomainDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Domain not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get a sending domain",
+        "tags": [
+          "Email Domains"
+        ]
+      },
+      "delete": {
+        "description": "Remove a sending domain. Its addresses can no longer be used as a sender.",
+        "operationId": "email.domains.remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Domain ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Domain deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Domain not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Delete a sending domain",
+        "tags": [
+          "Email Domains"
+        ]
+      }
+    },
+    "/v1/email/domains/{id}/verify": {
+      "post": {
+        "description": "Check the domain's DNS records now, without waiting for the periodic check, and return the result. A domain that is already `verified` is returned as it is.",
+        "operationId": "email.domains.verify",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Domain ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The domain and its DNS records after the check",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailDomainDetailResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A parent or subdomain of the domain has since been verified by another organization (`domain_unavailable`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Domain not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Verify a sending domain",
+        "tags": [
+          "Email Domains"
+        ]
+      }
+    },
+    "/v1/whatsapp/templates": {
+      "post": {
+        "description": "Create a template and submit it to Meta for review in one call. WhatsApp only lets a business start a conversation with an approved template.\n\n**Approval is asynchronous.** The template comes back `pending`. Poll `GET /whatsapp/templates/{id}` until `status` is `approved` or `rejected`; review usually takes minutes and can take up to 48 hours.\n\n**Marketing and utility** templates carry `components`, in Meta's own format. Headers are text only for now. Placeholders are named in lowercase snake_case (`{{first_name}}`), and those names are the keys you pass in `parameters` when sending.\n\n**Authentication** templates carry `authentication` options instead: Meta fixes the wording, and the one-time code is sent as `parameters.code`.\n\n**Sending:** utility and authentication templates go out through `POST /whatsapp/send`. A marketing template can be created here but is sent as a campaign.\n\n**Retries:** name and language identify a template. Repeating a create that already succeeded returns 409; read it back with `GET /whatsapp/templates?name=`.",
+        "operationId": "whatsapp.templates.create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWhatsappTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template created and submitted to Meta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappTemplateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "WhatsApp is not connected for this organization, or Meta rejected the template outright",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A template with this name already exists in this language",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The provider is unreachable. Nothing was created — retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create a WhatsApp template",
+        "tags": [
+          "WhatsApp Templates"
+        ]
+      },
+      "get": {
+        "description": "Newest first. Includes every template in the organization, whether it was created through this API, in the dashboard, or imported from Meta.",
+        "operationId": "whatsapp.templates.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "pending",
+                "approved",
+                "rejected",
+                "paused",
+                "disabled"
+              ]
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "marketing",
+                "utility",
+                "authentication"
+              ]
+            }
+          },
+          {
+            "name": "name",
+            "required": false,
+            "in": "query",
+            "description": "Exact template name. Returns one template per language it exists in.",
+            "schema": {
+              "example": "order_shipped",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "WhatsApp templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappTemplateListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List WhatsApp templates",
+        "tags": [
+          "WhatsApp Templates"
+        ]
+      }
+    },
+    "/v1/whatsapp/templates/{id}": {
+      "get": {
+        "description": "The template with its current approval status. `status` and `rejection_reason` follow Meta's review, and `category` follows any recategorization by Meta.",
+        "operationId": "whatsapp.templates.get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The template",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappTemplateResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get a WhatsApp template",
+        "tags": [
+          "WhatsApp Templates"
+        ]
+      },
+      "patch": {
+        "description": "Replace a template's content and resubmit it to Meta. `status` returns to `pending` and `rejection_reason` is cleared. Name, language and category cannot be changed.\n\nOnly `approved` and `rejected` templates can be edited. Authentication templates and templates adopted from Meta's library cannot: their wording belongs to Meta.\n\nMeta limits edits of an approved template to one per 24 hours and ten per 30 days.",
+        "operationId": "whatsapp.templates.update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWhatsappTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Template resubmitted to Meta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappTemplateResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "This template cannot be edited, or Meta rejected the edit outright",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The provider is unreachable. Nothing was changed — retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Edit a WhatsApp template",
+        "tags": [
+          "WhatsApp Templates"
+        ]
+      },
+      "delete": {
+        "description": "Delete a template here and at Meta. It can no longer be sent. Meta keeps the name of a deleted approved template reserved for 30 days, so creating it again under the same name may be refused until then.",
+        "operationId": "whatsapp.templates.remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Template id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Template not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Delete a WhatsApp template",
+        "tags": [
+          "WhatsApp Templates"
+        ]
+      }
+    },
+    "/v1/email/campaigns/{id}/stats": {
+      "get": {
+        "description": "Delivery, engagement, per-link clicks and attributed conversions for an email campaign. Totals cover the whole life of the campaign. Counts of distinct contacts can trail the event counts by up to 15 minutes. Until a campaign is sent its event counts are 0 and its rates are `null`.",
+        "operationId": "email.campaigns.stats",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailCampaignStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get email campaign stats",
+        "tags": [
+          "CampaignStatsDevApi",
+          "Email Campaigns"
+        ]
+      }
+    },
+    "/v1/sms/campaigns/{id}/stats": {
+      "get": {
+        "description": "Delivery status counts, clicks and attributed conversions for an SMS campaign. Totals cover the whole life of the campaign. Counts of distinct contacts can trail the event counts by up to 15 minutes. Until a campaign is sent its event counts are 0 and its rates are `null`.",
+        "operationId": "sms.campaigns.stats",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsCampaignStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get SMS campaign stats",
+        "tags": [
+          "CampaignStatsDevApi",
+          "SMS Campaigns"
+        ]
+      }
+    },
+    "/v1/push/campaigns/{id}/stats": {
+      "get": {
+        "description": "Delivery, display, engagement and attributed conversions for a push campaign. `delivered` means the push service accepted the notification; `confirmed` is the subset a device reported receiving. Totals cover the whole life of the campaign. Counts of distinct contacts can trail the event counts by up to 15 minutes. Until a campaign is sent its event counts are 0 and its rates are `null`.",
+        "operationId": "push.campaigns.stats",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushCampaignStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get push campaign stats",
+        "tags": [
+          "CampaignStatsDevApi",
+          "Push Campaigns"
+        ]
+      }
+    },
+    "/v1/in-app/campaigns/{id}/stats": {
+      "get": {
+        "description": "Impressions and engagement for an in-app campaign. Nothing is sent on this channel, so there is no delivery or failure count. Totals cover the whole life of the campaign. Counts of distinct contacts can trail the event counts by up to 15 minutes. Until a campaign is sent its event counts are 0 and its rates are `null`.",
+        "operationId": "inApp.campaigns.stats",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InAppCampaignStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get in-app campaign stats",
+        "tags": [
+          "CampaignStatsDevApi",
+          "In-App Campaigns"
+        ]
+      }
+    },
+    "/v1/whatsapp/campaigns/{id}/stats": {
+      "get": {
+        "description": "Delivery, reads, button taps and attributed conversions for a WhatsApp campaign. Totals cover the whole life of the campaign. Counts of distinct contacts can trail the event counts by up to 15 minutes. Until a campaign is sent its event counts are 0 and its rates are `null`.",
+        "operationId": "whatsapp.campaigns.stats",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Campaign ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Campaign stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappCampaignStatsResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Campaign not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get WhatsApp campaign stats",
+        "tags": [
+          "CampaignStatsDevApi",
+          "WhatsApp Campaigns"
         ]
       }
     }
@@ -8295,10 +9791,15 @@
               "conversion_currency_unsupported",
               "conversion_currency_without_value",
               "conversion_value_field_invalid",
+              "domain_limit_reached",
+              "domain_unavailable",
               "event_in_use",
               "event_limit_reached",
               "event_not_found",
               "schema_mismatch",
+              "segment_in_use",
+              "segment_limit_reached",
+              "segment_not_ready",
               "invalid_recipient",
               "re_engagement_required",
               "recipient_rate_limited",
@@ -12907,7 +14408,7 @@
             "type": "number",
             "nullable": true,
             "example": 420,
-            "description": "Contacts matching the segment when it was last counted. `null` if it has not been counted yet, or its rules changed since."
+            "description": "Contacts matching the segment when it was last counted. `null` while `status` is `processing`."
           },
           "counted_at": {
             "type": "string",
@@ -12925,12 +14426,53 @@
             "type": "string",
             "format": "date-time",
             "example": "2026-03-08T12:00:00.000Z"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "processing",
+              "ready"
+            ],
+            "example": "ready",
+            "description": "`processing` until the members have been computed for the current rules, then `ready`."
+          },
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactFilter"
+              }
+            ],
+            "description": "The rules a contact must match to be in the segment.",
+            "example": {
+              "type": "group",
+              "operator": "and",
+              "conditions": [
+                {
+                  "type": "engagement_count",
+                  "channel": "email",
+                  "action": "opened",
+                  "operator": "greater_than_or_equal",
+                  "value": 3,
+                  "time_window": {
+                    "value": 90,
+                    "unit": "days"
+                  }
+                },
+                {
+                  "type": "channel_status",
+                  "channel": "email",
+                  "consent": "subscribed"
+                }
+              ]
+            }
           }
         },
         "required": [
           "id",
           "name",
           "description",
+          "status",
+          "filter",
           "contact_count",
           "counted_at",
           "created_at",
@@ -13085,6 +14627,1834 @@
           "automation_runs",
           "contacts"
         ]
+      },
+      "RegisterEmailDomainDevApiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "mail.acme.com",
+            "maxLength": 255,
+            "description": "The domain to send from. Stored lowercased."
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "EmailDomainRecordDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "example": "CNAME",
+            "description": "DNS record type."
+          },
+          "name": {
+            "type": "string",
+            "example": "abc123._domainkey.mail.acme.com"
+          },
+          "value": {
+            "type": "string",
+            "example": "abc123.dkim.amazonses.com"
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "dkim",
+              "spf",
+              "dmarc",
+              "mail_from"
+            ],
+            "example": "dkim"
+          },
+          "required": {
+            "type": "boolean",
+            "example": true,
+            "description": "The domain cannot become `verified` until every required record is published. The others are recommended for deliverability."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified"
+            ],
+            "example": "pending"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "value",
+          "purpose",
+          "required",
+          "status"
+        ]
+      },
+      "EmailDomainDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "mail.acme.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "verified",
+              "failed"
+            ],
+            "example": "verified",
+            "description": "Only a `verified` domain can send: any address at it is accepted as `from`."
+          },
+          "verified_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "records": {
+            "description": "The DNS records to publish at the domain's DNS provider.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailDomainRecordDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "verified_at",
+          "created_at",
+          "records"
+        ]
+      },
+      "WaTemplateNamedParamDto": {
+        "type": "object",
+        "properties": {
+          "param_name": {
+            "type": "string"
+          },
+          "example": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "param_name",
+          "example"
+        ]
+      },
+      "WaTemplateExampleDto": {
+        "type": "object",
+        "properties": {
+          "header_text": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "header_handle": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "body_text": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "header_text_named_params": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaTemplateNamedParamDto"
+            }
+          },
+          "body_text_named_params": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaTemplateNamedParamDto"
+            }
+          }
+        }
+      },
+      "WaTemplateButtonDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "QUICK_REPLY",
+              "URL",
+              "PHONE_NUMBER"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "phone_number": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "text"
+        ]
+      },
+      "WaTemplateComponentDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "HEADER",
+              "BODY",
+              "FOOTER",
+              "BUTTONS"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "TEXT",
+              "IMAGE",
+              "VIDEO",
+              "DOCUMENT"
+            ]
+          },
+          "text": {
+            "type": "string"
+          },
+          "example": {
+            "$ref": "#/components/schemas/WaTemplateExampleDto"
+          },
+          "buttons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaTemplateButtonDto"
+            }
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "WhatsappTemplateSupportedAppDto": {
+        "type": "object",
+        "properties": {
+          "package_name": {
+            "type": "string",
+            "example": "com.example.myapp"
+          },
+          "signature_hash": {
+            "type": "string",
+            "description": "Base64 SHA-256 hash of the app signing key."
+          }
+        },
+        "required": [
+          "package_name",
+          "signature_hash"
+        ]
+      },
+      "WhatsappTemplateAuthenticationDto": {
+        "type": "object",
+        "properties": {
+          "otp_type": {
+            "type": "string",
+            "enum": [
+              "copy_code",
+              "one_tap",
+              "zero_tap"
+            ],
+            "description": "How the recipient gets the code off the screen.",
+            "example": "copy_code"
+          },
+          "add_security_recommendation": {
+            "type": "boolean",
+            "description": "Append \"For your security, do not share this code.\" to the body."
+          },
+          "code_expiration_minutes": {
+            "type": "number",
+            "description": "Adds a footer reading \"This code expires in N minutes.\"",
+            "minimum": 1,
+            "maximum": 90
+          },
+          "button_text": {
+            "type": "string",
+            "description": "Button label. Meta supplies a localized default.",
+            "maxLength": 25
+          },
+          "autofill_text": {
+            "type": "string",
+            "description": "Label shown while autofilling. One-tap and zero-tap only.",
+            "maxLength": 25
+          },
+          "supported_apps": {
+            "description": "Android apps allowed to autofill the code. Required for one-tap and zero-tap.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhatsappTemplateSupportedAppDto"
+            }
+          },
+          "zero_tap_terms_accepted": {
+            "type": "boolean",
+            "description": "Must be true for zero-tap: accepts Meta's zero-tap terms."
+          },
+          "message_send_ttl_seconds": {
+            "type": "number",
+            "description": "How long Meta may keep retrying delivery before dropping the code.",
+            "minimum": 30,
+            "maximum": 900
+          }
+        },
+        "required": [
+          "otp_type"
+        ]
+      },
+      "CreateWhatsappTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Template name: lowercase letters, numbers and underscores, starting with a letter. Unique per language.",
+            "example": "order_shipped",
+            "maxLength": 512
+          },
+          "language": {
+            "type": "string",
+            "description": "Meta language code.",
+            "example": "en",
+            "maxLength": 10
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "utility",
+              "authentication"
+            ],
+            "example": "utility"
+          },
+          "components": {
+            "description": "Required for `marketing` and `utility`; not accepted for `authentication`. The template content in Meta's own component format, passed through unchanged: `HEADER` (format `TEXT` only), `BODY`, `FOOTER` and `BUTTONS`. Placeholders are named, in lowercase snake_case: `{{first_name}}`.",
+            "example": [
+              {
+                "type": "HEADER",
+                "format": "TEXT",
+                "text": "Your order"
+              },
+              {
+                "type": "BODY",
+                "text": "Hi {{first_name}}, order {{order_id}} has shipped."
+              },
+              {
+                "type": "FOOTER",
+                "text": "Arsel Store"
+              },
+              {
+                "type": "BUTTONS",
+                "buttons": [
+                  {
+                    "type": "URL",
+                    "text": "Track",
+                    "url": "https://example.com/track"
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaTemplateComponentDto"
+            }
+          },
+          "authentication": {
+            "description": "Required when `category` is `authentication`. Meta fixes the wording of an authentication template, so you choose options instead of writing components.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WhatsappTemplateAuthenticationDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "language",
+          "category"
+        ]
+      },
+      "WhatsappTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0199b1c2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "order_shipped",
+            "description": "The value to pass as `template_name` when sending."
+          },
+          "language": {
+            "type": "string",
+            "example": "en"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "utility",
+              "authentication"
+            ],
+            "example": "utility",
+            "description": "Can change after submission: Meta recategorizes templates, and the category sets the price per message."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "pending",
+              "approved",
+              "rejected",
+              "paused",
+              "disabled"
+            ],
+            "example": "pending",
+            "description": "Only `approved` templates can be sent. `pending` is under review by Meta; `paused` and `disabled` are applied by Meta for low quality; `draft` means the status is not known yet."
+          },
+          "rejection_reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Meta's reason, when the template was rejected.",
+            "example": null
+          },
+          "parameters": {
+            "example": [
+              "first_name",
+              "order_id"
+            ],
+            "description": "The keys `POST /whatsapp/send` needs in `parameters` for this template. `[\"code\"]` for an authentication template.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "The template content in Meta's own component format, as stored.",
+            "example": [
+              {
+                "type": "HEADER",
+                "format": "TEXT",
+                "text": "Your order"
+              },
+              {
+                "type": "BODY",
+                "text": "Hi {{first_name}}, order {{order_id}} has shipped."
+              },
+              {
+                "type": "FOOTER",
+                "text": "Arsel Store"
+              },
+              {
+                "type": "BUTTONS",
+                "buttons": [
+                  {
+                    "type": "URL",
+                    "text": "Track",
+                    "url": "https://example.com/track"
+                  }
+                ]
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-07T09:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-10-07T09:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "language",
+          "category",
+          "status",
+          "rejection_reason",
+          "parameters",
+          "components",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "WhatsappTemplateListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WhatsappTemplateResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "UpdateWhatsappTemplateDto": {
+        "type": "object",
+        "properties": {
+          "components": {
+            "description": "The full replacement content. The template content in Meta's own component format, passed through unchanged: `HEADER` (format `TEXT` only), `BODY`, `FOOTER` and `BUTTONS`. Placeholders are named, in lowercase snake_case: `{{first_name}}`.",
+            "example": [
+              {
+                "type": "HEADER",
+                "format": "TEXT",
+                "text": "Your order"
+              },
+              {
+                "type": "BODY",
+                "text": "Hi {{first_name}}, order {{order_id}} has shipped."
+              },
+              {
+                "type": "FOOTER",
+                "text": "Arsel Store"
+              },
+              {
+                "type": "BUTTONS",
+                "buttons": [
+                  {
+                    "type": "URL",
+                    "text": "Track",
+                    "url": "https://example.com/track"
+                  }
+                ]
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WaTemplateComponentDto"
+            }
+          }
+        },
+        "required": [
+          "components"
+        ]
+      },
+      "CreateSegmentDevApiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "VIP customers",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "example": "Opened 3+ emails in the last 90 days",
+            "maxLength": 500
+          },
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactFilter"
+              }
+            ],
+            "description": "The rules a contact must match to be in the segment.",
+            "example": {
+              "type": "group",
+              "operator": "and",
+              "conditions": [
+                {
+                  "type": "engagement_count",
+                  "channel": "email",
+                  "action": "opened",
+                  "operator": "greater_than_or_equal",
+                  "value": 3,
+                  "time_window": {
+                    "value": 90,
+                    "unit": "days"
+                  }
+                },
+                {
+                  "type": "channel_status",
+                  "channel": "email",
+                  "consent": "subscribed"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "filter"
+        ]
+      },
+      "UpdateSegmentDevApiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "VIP customers",
+            "maxLength": 100
+          },
+          "description": {
+            "type": "string",
+            "example": "Opened 3+ emails in the last 90 days",
+            "maxLength": 500
+          },
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactFilter"
+              }
+            ],
+            "description": "Replaces the whole rule tree. The members are recomputed, and `status` is `processing` until they are.",
+            "example": {
+              "type": "group",
+              "operator": "and",
+              "conditions": [
+                {
+                  "type": "engagement_count",
+                  "channel": "email",
+                  "action": "opened",
+                  "operator": "greater_than_or_equal",
+                  "value": 3,
+                  "time_window": {
+                    "value": 90,
+                    "unit": "days"
+                  }
+                },
+                {
+                  "type": "channel_status",
+                  "channel": "email",
+                  "consent": "subscribed"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "SmartSendingStatsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether Smart Sending was on when the campaign was sent."
+          },
+          "skipped": {
+            "type": "number",
+            "example": 140,
+            "description": "Recipients skipped because they had already reached the sending cap."
+          }
+        },
+        "required": [
+          "enabled",
+          "skipped"
+        ]
+      },
+      "EmailLinkStatsDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "https://example.com/sale"
+          },
+          "clicks": {
+            "type": "number",
+            "example": 311
+          }
+        },
+        "required": [
+          "url",
+          "clicks"
+        ]
+      },
+      "CurrencyAmountStatsDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "SAR"
+          },
+          "amount": {
+            "type": "number",
+            "example": 18350
+          }
+        },
+        "required": [
+          "currency",
+          "amount"
+        ]
+      },
+      "ConversionEventStatsDto": {
+        "type": "object",
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "event_name": {
+            "type": "string",
+            "example": "order_completed"
+          },
+          "tracks_revenue": {
+            "type": "boolean",
+            "description": "Whether this event maps a revenue value."
+          },
+          "conversions": {
+            "type": "number",
+            "example": 42
+          },
+          "revenue": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyAmountStatsDto"
+            }
+          }
+        },
+        "required": [
+          "event_id",
+          "event_name",
+          "tracks_revenue",
+          "conversions",
+          "revenue"
+        ]
+      },
+      "ConversionStatsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "False when the organization has no conversion events; the other fields are then empty."
+          },
+          "tracking_since": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the earliest conversion event was enabled."
+          },
+          "total": {
+            "type": "number",
+            "example": 42,
+            "description": "Conversions attributed to this campaign."
+          },
+          "revenue": {
+            "description": "Attributed revenue, one entry per currency.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyAmountStatsDto"
+            }
+          },
+          "by_event": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConversionEventStatsDto"
+            }
+          }
+        },
+        "required": [
+          "enabled",
+          "tracking_since",
+          "total",
+          "revenue",
+          "by_event"
+        ]
+      },
+      "EmailCampaignStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "email_campaign_stats",
+            "enum": [
+              "email_campaign_stats"
+            ]
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sent": {
+            "type": "number",
+            "example": 12040
+          },
+          "delivered": {
+            "type": "number",
+            "example": 11800
+          },
+          "failed": {
+            "type": "number",
+            "example": 12,
+            "description": "Messages the mail provider never accepted."
+          },
+          "bounced": {
+            "type": "number",
+            "example": 228,
+            "description": "All bounces: `hard_bounced` + `soft_bounced` + `validator_rejected`."
+          },
+          "hard_bounced": {
+            "type": "number",
+            "example": 90
+          },
+          "soft_bounced": {
+            "type": "number",
+            "example": 120
+          },
+          "validator_rejected": {
+            "type": "number",
+            "example": 18,
+            "description": "Addresses the email validator rejected before sending. Counted in `bounced`."
+          },
+          "opens": {
+            "type": "number",
+            "example": 6100,
+            "description": "Every open, repeats included."
+          },
+          "unique_opens": {
+            "type": "number",
+            "example": 4720,
+            "description": "Contacts who opened."
+          },
+          "clicks": {
+            "type": "number",
+            "example": 980,
+            "description": "Every click, repeats included."
+          },
+          "unique_clicks": {
+            "type": "number",
+            "example": 610,
+            "description": "Contacts who clicked."
+          },
+          "unsubscribed": {
+            "type": "number",
+            "example": 31
+          },
+          "complained": {
+            "type": "number",
+            "example": 2,
+            "description": "Spam complaints."
+          },
+          "delivery_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.9801,
+            "description": "`delivered` / `sent`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "open_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.4,
+            "description": "`unique_opens` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "click_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0517,
+            "description": "`unique_clicks` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "bounce_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0189,
+            "description": "`bounced` / `sent`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "unsubscribe_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0026,
+            "description": "`unsubscribed` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "complaint_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0002,
+            "description": "`complained` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "smart_sending": {
+            "$ref": "#/components/schemas/SmartSendingStatsDto"
+          },
+          "links": {
+            "description": "Clicks per link, most clicked first. Unsubscribe links are left out.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EmailLinkStatsDto"
+            }
+          },
+          "conversions": {
+            "$ref": "#/components/schemas/ConversionStatsDto"
+          }
+        },
+        "required": [
+          "object",
+          "campaign_id",
+          "sent",
+          "delivered",
+          "failed",
+          "bounced",
+          "hard_bounced",
+          "soft_bounced",
+          "validator_rejected",
+          "opens",
+          "unique_opens",
+          "clicks",
+          "unique_clicks",
+          "unsubscribed",
+          "complained",
+          "delivery_rate",
+          "open_rate",
+          "click_rate",
+          "bounce_rate",
+          "unsubscribe_rate",
+          "complaint_rate",
+          "smart_sending",
+          "links",
+          "conversions"
+        ]
+      },
+      "SmsCampaignStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "sms_campaign_stats",
+            "enum": [
+              "sms_campaign_stats"
+            ]
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipients": {
+            "type": "number",
+            "example": 5200,
+            "description": "Contacts the campaign was sent to. Before it is sent, the current audience size."
+          },
+          "sent": {
+            "type": "number",
+            "example": 5180
+          },
+          "delivered": {
+            "type": "number",
+            "example": 4960
+          },
+          "undelivered": {
+            "type": "number",
+            "example": 110
+          },
+          "failed": {
+            "type": "number",
+            "example": 4,
+            "description": "Messages the SMS provider never accepted."
+          },
+          "blocked": {
+            "type": "number",
+            "example": 6
+          },
+          "rejected": {
+            "type": "number",
+            "example": 3
+          },
+          "expired": {
+            "type": "number",
+            "example": 21
+          },
+          "unknown": {
+            "type": "number",
+            "example": 9,
+            "description": "Delivery receipts with a status the provider did not name."
+          },
+          "pending": {
+            "type": "number",
+            "example": 71,
+            "description": "Accepted by the provider with no final receipt yet."
+          },
+          "clicks": {
+            "type": "number",
+            "example": 402,
+            "description": "Every click, repeats included. Link-scanner clicks excluded."
+          },
+          "unique_clicks": {
+            "type": "number",
+            "example": 371,
+            "description": "Contacts who clicked."
+          },
+          "bot_clicks": {
+            "type": "number",
+            "example": 58,
+            "description": "Clicks identified as link scanners. Not counted in `clicks`."
+          },
+          "delivery_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.9575,
+            "description": "`delivered` / `sent`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "click_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0748,
+            "description": "`unique_clicks` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "smart_sending": {
+            "$ref": "#/components/schemas/SmartSendingStatsDto"
+          },
+          "conversions": {
+            "$ref": "#/components/schemas/ConversionStatsDto"
+          }
+        },
+        "required": [
+          "object",
+          "campaign_id",
+          "recipients",
+          "sent",
+          "delivered",
+          "undelivered",
+          "failed",
+          "blocked",
+          "rejected",
+          "expired",
+          "unknown",
+          "pending",
+          "clicks",
+          "unique_clicks",
+          "bot_clicks",
+          "delivery_rate",
+          "click_rate",
+          "smart_sending",
+          "conversions"
+        ]
+      },
+      "PushCampaignStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "push_campaign_stats",
+            "enum": [
+              "push_campaign_stats"
+            ]
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recipients": {
+            "type": "number",
+            "example": 8400,
+            "description": "Contacts the campaign was sent to. Before it is sent, the contacts it can currently reach."
+          },
+          "devices": {
+            "type": "number",
+            "example": 9150,
+            "description": "Devices behind `recipients`."
+          },
+          "attempts": {
+            "type": "number",
+            "example": 9150,
+            "description": "`delivered` + `failures` + `token_invalidations`."
+          },
+          "delivered": {
+            "type": "number",
+            "example": 8890,
+            "description": "Notifications accepted by APNs, FCM or Web Push. Acceptance, not arrival on the device."
+          },
+          "confirmed": {
+            "type": "number",
+            "example": 6120,
+            "description": "Notifications the device reported receiving. A floor: not every device reports."
+          },
+          "displayed": {
+            "type": "number",
+            "example": 5980
+          },
+          "suppressed": {
+            "type": "number",
+            "example": 140,
+            "description": "Notifications the device received but did not show."
+          },
+          "opens": {
+            "type": "number",
+            "example": 1310,
+            "description": "Every open, repeats included."
+          },
+          "clicks": {
+            "type": "number",
+            "example": 420,
+            "description": "Every click, repeats included."
+          },
+          "dismissals": {
+            "type": "number",
+            "example": 260
+          },
+          "failures": {
+            "type": "number",
+            "example": 75
+          },
+          "token_invalidations": {
+            "type": "number",
+            "example": 185,
+            "description": "Sends refused because the device token was no longer valid."
+          },
+          "bot_opens": {
+            "type": "number",
+            "example": 12,
+            "description": "Opens whose signature failed verification. Not counted in `opens`."
+          },
+          "bot_clicks": {
+            "type": "number",
+            "example": 3,
+            "description": "Clicks whose signature failed verification. Not counted in `clicks`."
+          },
+          "unique_delivered": {
+            "type": "number",
+            "example": 8200,
+            "description": "Contacts with at least one delivered notification."
+          },
+          "unique_displayed": {
+            "type": "number",
+            "example": 5600
+          },
+          "unique_opens": {
+            "type": "number",
+            "example": 1180,
+            "description": "Contacts who opened."
+          },
+          "unique_clicks": {
+            "type": "number",
+            "example": 390,
+            "description": "Contacts who clicked."
+          },
+          "delivery_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.9716,
+            "description": "`delivered` / `attempts`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "open_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.1439,
+            "description": "`unique_opens` / `unique_delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "click_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.0476,
+            "description": "`unique_clicks` / `unique_delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "smart_sending": {
+            "$ref": "#/components/schemas/SmartSendingStatsDto"
+          },
+          "conversions": {
+            "$ref": "#/components/schemas/ConversionStatsDto"
+          }
+        },
+        "required": [
+          "object",
+          "campaign_id",
+          "recipients",
+          "devices",
+          "attempts",
+          "delivered",
+          "confirmed",
+          "displayed",
+          "suppressed",
+          "opens",
+          "clicks",
+          "dismissals",
+          "failures",
+          "token_invalidations",
+          "bot_opens",
+          "bot_clicks",
+          "unique_delivered",
+          "unique_displayed",
+          "unique_opens",
+          "unique_clicks",
+          "delivery_rate",
+          "open_rate",
+          "click_rate",
+          "smart_sending",
+          "conversions"
+        ]
+      },
+      "InAppCampaignStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "in_app_campaign_stats",
+            "enum": [
+              "in_app_campaign_stats"
+            ]
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "impressions": {
+            "type": "number",
+            "example": 15200
+          },
+          "clicks": {
+            "type": "number",
+            "example": 1840
+          },
+          "dismissals": {
+            "type": "number",
+            "example": 9300
+          },
+          "expirations": {
+            "type": "number",
+            "example": 410,
+            "description": "Messages that expired on the device without being shown."
+          },
+          "bot_impressions": {
+            "type": "number",
+            "example": 22,
+            "description": "Impressions identified as automated. Not counted in `impressions`."
+          },
+          "bot_clicks": {
+            "type": "number",
+            "example": 4,
+            "description": "Clicks identified as automated. Not counted in `clicks`."
+          },
+          "devices_reached": {
+            "type": "number",
+            "example": 11750,
+            "description": "Devices that have shown the message at least once."
+          },
+          "click_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.1211,
+            "description": "`clicks` / `impressions`. A fraction from 0 to 1. `null` when the denominator is 0."
+          }
+        },
+        "required": [
+          "object",
+          "campaign_id",
+          "impressions",
+          "clicks",
+          "dismissals",
+          "expirations",
+          "bot_impressions",
+          "bot_clicks",
+          "devices_reached",
+          "click_rate"
+        ]
+      },
+      "WhatsappCampaignStatsResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "whatsapp_campaign_stats",
+            "enum": [
+              "whatsapp_campaign_stats"
+            ]
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sent": {
+            "type": "number",
+            "example": 3100
+          },
+          "delivered": {
+            "type": "number",
+            "example": 3020
+          },
+          "read": {
+            "type": "number",
+            "example": 2410,
+            "description": "Read receipts received."
+          },
+          "failed": {
+            "type": "number",
+            "example": 80
+          },
+          "clicks": {
+            "type": "number",
+            "example": 560,
+            "description": "Button taps, repeats included."
+          },
+          "unique_reads": {
+            "type": "number",
+            "example": 2290,
+            "description": "Contacts who read."
+          },
+          "unique_clicks": {
+            "type": "number",
+            "example": 498,
+            "description": "Contacts who tapped a button."
+          },
+          "delivery_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.9742,
+            "description": "`delivered` / `sent`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "read_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.7583,
+            "description": "`unique_reads` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "click_rate": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.1649,
+            "description": "`unique_clicks` / `delivered`. A fraction from 0 to 1. `null` when the denominator is 0."
+          },
+          "conversions": {
+            "$ref": "#/components/schemas/ConversionStatsDto"
+          }
+        },
+        "required": [
+          "object",
+          "campaign_id",
+          "sent",
+          "delivered",
+          "read",
+          "failed",
+          "clicks",
+          "unique_reads",
+          "unique_clicks",
+          "delivery_rate",
+          "read_rate",
+          "click_rate",
+          "conversions"
+        ]
+      },
+      "ContactFilter": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "group"
+            ]
+          },
+          "operator": {
+            "type": "string",
+            "enum": [
+              "and",
+              "or"
+            ]
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/ContactFilter"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "attribute"
+                      ]
+                    },
+                    "field": {
+                      "type": "string"
+                    },
+                    "operator": {
+                      "type": "string",
+                      "enum": [
+                        "equals",
+                        "not_equals",
+                        "contains",
+                        "not_contains",
+                        "starts_with",
+                        "ends_with",
+                        "exists",
+                        "does_not_exist",
+                        "greater_than",
+                        "greater_than_or_equal",
+                        "less_than",
+                        "less_than_or_equal",
+                        "date_is_same_month_day"
+                      ]
+                    },
+                    "value": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "field",
+                    "operator"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "list_membership"
+                      ]
+                    },
+                    "list_ids": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "negate": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "list_ids"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "tag"
+                      ]
+                    },
+                    "tag_ids": {
+                      "minItems": 1,
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "negate": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "tag_ids"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "engagement_count"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms",
+                        "push"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "delivered",
+                        "opened",
+                        "clicked"
+                      ]
+                    },
+                    "operator": {
+                      "type": "string",
+                      "enum": [
+                        "equals",
+                        "not_equals",
+                        "greater_than",
+                        "greater_than_or_equal",
+                        "less_than",
+                        "less_than_or_equal"
+                      ]
+                    },
+                    "value": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "time_window": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 365
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "days",
+                            "weeks",
+                            "months"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "channel",
+                    "action",
+                    "operator",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "last_engagement"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms",
+                        "whatsapp",
+                        "push",
+                        "in_app"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "delivered",
+                        "opened",
+                        "clicked"
+                      ]
+                    },
+                    "operator": {
+                      "type": "string",
+                      "enum": [
+                        "equals",
+                        "not_equals",
+                        "greater_than",
+                        "greater_than_or_equal",
+                        "less_than",
+                        "less_than_or_equal",
+                        "exists",
+                        "does_not_exist"
+                      ]
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "channel",
+                    "action",
+                    "operator"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "message_engagement"
+                      ]
+                    },
+                    "target_type": {
+                      "type": "string",
+                      "enum": [
+                        "campaign",
+                        "automation",
+                        "automation_step",
+                        "message"
+                      ]
+                    },
+                    "target_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms",
+                        "whatsapp",
+                        "push",
+                        "in_app"
+                      ]
+                    },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "sent",
+                        "delivered",
+                        "opened",
+                        "clicked"
+                      ]
+                    },
+                    "negate": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "target_type",
+                    "target_id",
+                    "action"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "event"
+                      ]
+                    },
+                    "event_name": {
+                      "type": "string",
+                      "maxLength": 255
+                    },
+                    "count": {
+                      "type": "object",
+                      "properties": {
+                        "operator": {
+                          "type": "string",
+                          "enum": [
+                            "at_least",
+                            "at_most",
+                            "exactly"
+                          ]
+                        },
+                        "value": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "operator",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "time_window": {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 365
+                        },
+                        "unit": {
+                          "type": "string",
+                          "enum": [
+                            "days",
+                            "weeks",
+                            "months"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "value",
+                        "unit"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "where": {
+                      "maxItems": 10,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "field": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_.-]{1,80}$"
+                          },
+                          "operator": {
+                            "type": "string",
+                            "enum": [
+                              "equals",
+                              "not_equals",
+                              "contains",
+                              "not_contains",
+                              "starts_with",
+                              "ends_with",
+                              "exists",
+                              "does_not_exist",
+                              "greater_than",
+                              "greater_than_or_equal",
+                              "less_than",
+                              "less_than_or_equal"
+                            ]
+                          },
+                          "value": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "boolean"
+                              }
+                            ]
+                          },
+                          "value_type": {
+                            "type": "string",
+                            "enum": [
+                              "string",
+                              "number",
+                              "boolean",
+                              "date"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "field",
+                          "operator",
+                          "value_type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "negate": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "event_name"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "channel_status"
+                      ]
+                    },
+                    "channel": {
+                      "type": "string",
+                      "enum": [
+                        "email",
+                        "sms",
+                        "whatsapp",
+                        "push"
+                      ]
+                    },
+                    "consent": {
+                      "type": "string",
+                      "enum": [
+                        "subscribed",
+                        "unsubscribed"
+                      ]
+                    },
+                    "deliverability": {
+                      "type": "string",
+                      "enum": [
+                        "deliverable",
+                        "undeliverable"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "channel"
+                  ],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "operator",
+          "conditions"
+        ],
+        "additionalProperties": false,
+        "description": "A group of rules a contact must match. Groups nest up to 10 levels and hold at most 100 rules in total."
       }
     }
   }

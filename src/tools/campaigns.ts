@@ -230,6 +230,24 @@ const inAppFields = {
     .describe('ISO 8601 date-time; omit for an open-ended campaign.'),
 };
 
+const STATS_NOTE =
+  'Rates are fractions from 0 to 1, so 0.25 is 25%, and null while there is nothing to divide by. Totals cover the whole life of the campaign, and counts of distinct contacts can trail the others by up to 15 minutes.';
+
+const stats = (
+  channel: string,
+  slug: string,
+  resource: string,
+  covers: string,
+): ArselTool => ({
+  name: `get-${slug}-campaign-stats`,
+  title: `Get ${channel} Campaign Stats`,
+  scope: 'read',
+  method: 'GET',
+  path: `/${slug}/campaigns/{id}/stats`,
+  description: `Get how one ${resource} performed: ${covers} ${STATS_NOTE}`,
+  inputSchema: z.object({ id: id(resource) }),
+});
+
 export const campaignTools: ArselTool[] = [
   {
     name: 'list-email-campaigns',
@@ -269,6 +287,12 @@ export const campaignTools: ArselTool[] = [
     description: `Update an email campaign. ${EDITABLE_NOTE}`,
     inputSchema: z.object({ id: id('email campaign'), ...emailFields }),
   },
+  stats(
+    'Email',
+    'email',
+    'email campaign',
+    'sent, delivered and bounced counts, opens and clicks (total and unique), unsubscribes, spam complaints, their rates, clicks per link, and the conversions and revenue attributed to it.',
+  ),
 
   {
     name: 'list-sms-campaigns',
@@ -315,6 +339,12 @@ export const campaignTools: ArselTool[] = [
       ...smsFields,
     }),
   },
+  stats(
+    'SMS',
+    'sms',
+    'SMS campaign',
+    'recipients, a count per delivery status (delivered, undelivered, failed, blocked, rejected, expired, pending), clicks, and the conversions and revenue attributed to it. `clicks` leaves out link scanners, which are counted in `bot_clicks`.',
+  ),
 
   {
     name: 'list-push-campaigns',
@@ -365,6 +395,12 @@ export const campaignTools: ArselTool[] = [
       ...pushFields,
     }),
   },
+  stats(
+    'Push',
+    'push',
+    'push campaign',
+    'recipients and devices, delivered, displayed, opened, clicked and dismissed counts, failures, and the conversions and revenue attributed to it. `delivered` means the push service accepted the notification, not that it arrived; `confirmed` is the part a device reported receiving.',
+  ),
 
   {
     name: 'list-in-app-campaigns',
@@ -430,4 +466,10 @@ export const campaignTools: ArselTool[] = [
       'Copy an in-app campaign into a new `draft`, e.g. to rework a live or ended one without touching it.',
     inputSchema: z.object({ id: id('in-app campaign') }),
   },
+  stats(
+    'In-App',
+    'in-app',
+    'in-app campaign',
+    'impressions, clicks, dismissals, expirations and devices reached. Nothing is sent on this channel, so there are no delivery or failure counts.',
+  ),
 ];

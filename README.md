@@ -1,10 +1,10 @@
 # Arsel MCP Server
 
-An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, templates and message logs, and draft campaigns for you to review and send.
+An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, campaign results, templates and message logs, build segments, and draft campaigns for you to review and send.
 
 It is a thin client over the [Arsel API](https://docs.arsel.sa). Every tool is one API call made as you, on the organization you connect, so the agent sees exactly what you'd see through the API.
 
-> **Preview.** The hosted server at `mcp.arsel.sa` and the `@arsel.sa/mcp` npm package are not live yet, so the setup steps below don't work today. Running from source needs Arsel API 1.0, which is coming in the next API release.
+> **Preview.** The hosted server at `mcp.arsel.sa` is live: connect with your Arsel account as described below. The `@arsel.sa/mcp` npm package is not published yet, so the `npx` commands below don't work today. Until it is, build from source (see [Development](#development)) and run `node dist/index.js` in place of `npx @arsel.sa/mcp`.
 
 > **Drafts only.** This server cannot send or schedule messages. Campaigns it creates are saved as drafts, and you send them from the Arsel dashboard.
 
@@ -91,18 +91,21 @@ claude mcp add --transport http arsel https://mcp.arsel.sa/mcp \
 | Contacts | `list-contacts` `get-contact` `create-contact` `update-contact` |
 | Lists | `list-lists` `get-list` `create-list` `update-list` `add-contacts-to-list` `remove-contacts-from-list` |
 | Tags | `list-tags` `get-tag` `create-tag` `update-tag` `add-tag-to-contacts` `remove-tag-from-contacts` |
-| Segments | `list-segments` `get-segment` |
+| Segments | `list-segments` `get-segment` `create-segment` `update-segment` |
 | Data model | `list-contact-properties` `get-contact-property` `create-contact-property` `update-contact-property` `list-events` `get-event` `create-event` `update-event` |
-| Email campaigns | `list-email-campaigns` `get-email-campaign` `create-email-campaign` `update-email-campaign` |
-| SMS campaigns | `list-sms-campaigns` `get-sms-campaign` `create-sms-campaign` `update-sms-campaign` |
-| Push campaigns | `list-push-campaigns` `get-push-campaign` `create-push-campaign` `update-push-campaign` |
-| In-app campaigns | `list-in-app-campaigns` `get-in-app-campaign` `create-in-app-campaign` `update-in-app-campaign` `clone-in-app-campaign` |
+| Email campaigns | `list-email-campaigns` `get-email-campaign` `create-email-campaign` `update-email-campaign` `get-email-campaign-stats` |
+| SMS campaigns | `list-sms-campaigns` `get-sms-campaign` `create-sms-campaign` `update-sms-campaign` `get-sms-campaign-stats` |
+| Push campaigns | `list-push-campaigns` `get-push-campaign` `create-push-campaign` `update-push-campaign` `get-push-campaign-stats` |
+| In-app campaigns | `list-in-app-campaigns` `get-in-app-campaign` `create-in-app-campaign` `update-in-app-campaign` `clone-in-app-campaign` `get-in-app-campaign-stats` |
 | Templates | `list-templates` `get-template` `create-template` `update-template` `list-gallery-categories` `list-gallery-templates` `get-gallery-template` `copy-gallery-template` |
+| WhatsApp templates | `list-whatsapp-templates` `get-whatsapp-template` `create-whatsapp-template` `update-whatsapp-template` |
 | Message logs | `list-emails` `get-email` `list-sms-messages` `get-sms-message` `list-whatsapp-messages` `get-whatsapp-message` `list-push-notifications` `get-push-notification` |
 | Push devices | `list-contact-push-devices` `get-push-device-import` |
-| Account | `list-email-domains` `list-sms-senders` `get-usage` |
+| Account | `list-email-domains` `get-email-domain` `create-email-domain` `verify-email-domain` `list-sms-senders` `get-usage` |
 
 There are no delete, cancel or send tools. Read tools are marked read-only, so clients can run them without asking you each time. Create and update tools ask for your approval first.
+
+A few writes take effect as soon as they run, with no draft to review afterwards: `update-segment` changes who the campaigns and automations using that segment reach, and `create-whatsapp-template` and `update-whatsapp-template` submit the template to Meta for review. The agent is told to confirm these with you before calling them.
 
 ## Security
 

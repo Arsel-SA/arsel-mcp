@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ArselTool } from './define.js';
+import { FILTER_GUIDE, segmentFilter } from './segment-filter.js';
 import { AUTOMATION_NOTE, id, ids, pagination, QUIET_IDS, search } from './shared.js';
 
 const contactIds = ids('Contact ids, from list-contacts.').min(1);
@@ -148,7 +149,7 @@ export const audienceTools: ArselTool[] = [
     scope: 'read',
     method: 'GET',
     path: '/segments',
-    description: `List segments with their contact counts. Segments are dynamic audiences defined by rules; the rules are managed in the Arsel dashboard and this server only reads them. \`contact_count\` is as of \`counted_at\`, and null for a segment that has not been counted yet or whose rules changed since. ${QUIET_IDS}`,
+    description: `List segments with their rules and contact counts. Segments are dynamic audiences: a \`filter\` of rules decides who is in, and campaigns target them through \`segment_ids\`. \`status\` is \`processing\` while the members are being computed and \`ready\` after. \`contact_count\` is as of \`counted_at\`, and null while the segment is \`processing\`. ${QUIET_IDS}`,
     inputSchema: z.object({ ...pagination, search: search('segment name') }),
   },
   {
@@ -158,7 +159,43 @@ export const audienceTools: ArselTool[] = [
     method: 'GET',
     path: '/segments/{id}',
     description:
-      'Get one segment and its last contact count. Its rules are not returned.',
+      'Get one segment: its `status`, its last contact count and its `filter`, in the format create-segment and update-segment accept. To see its members, call list-contacts with `segment_id`.',
     inputSchema: z.object({ id: id('segment') }),
+  },
+  {
+    name: 'create-segment',
+    title: 'Create Segment',
+    scope: 'write',
+    method: 'POST',
+    path: '/segments',
+    description: `Create a segment: a dynamic audience defined by rules, which campaigns target through \`segment_ids\`. Its members are recomputed regularly, and again before a campaign sends to it.
+
+${FILTER_GUIDE}
+
+The segment comes back with \`status: processing\` while its members are computed in the background. Call get-segment until it is \`ready\`, then tell the user its \`contact_count\`. Creating a segment messages nobody.`,
+    inputSchema: z.object({
+      name: z.string().min(1).max(100),
+      description: z.string().max(500).optional(),
+      filter: segmentFilter,
+    }),
+  },
+  {
+    name: 'update-segment',
+    title: 'Update Segment',
+    scope: 'write',
+    destructive: true,
+    method: 'PATCH',
+    path: '/segments/{id}',
+    description: `Rename a segment, change its description or replace its rules. Omitted fields are unchanged.
+
+\`filter\` REPLACES the whole rule tree: to change one rule, read the tree with get-segment, edit it and send all of it back. New rules change who the campaigns and automations using the segment reach, scheduled campaigns included, so before sending \`filter\` you MUST confirm with the user, naming the segment. The members are then recomputed in the background, and \`status\` is \`processing\` until they are.
+
+${FILTER_GUIDE}`,
+    inputSchema: z.object({
+      id: id('segment'),
+      name: z.string().min(1).max(100).optional(),
+      description: z.string().max(500).optional(),
+      filter: segmentFilter.optional(),
+    }),
   },
 ];

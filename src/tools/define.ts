@@ -77,7 +77,7 @@ function listToolFor(
   tool: ArselTool,
   tools: readonly ArselTool[],
 ): string | undefined {
-  const collection = tool.path.match(/^(.*)\/\{[a-z_]+\}$/)?.[1];
+  const collection = tool.path.match(/^(.*?)\/\{[a-z_]+\}/)?.[1];
   return collection
     ? tools.find((t) => t.method === 'GET' && t.path === collection)?.name
     : undefined;
@@ -125,6 +125,18 @@ function recoveryHint(
   }
   if (error.code === 'event_limit_reached') {
     return 'The organization has reached its limit of event definitions. Reuse one from list-events, or tell the user.';
+  }
+  if (error.code === 'segment_limit_reached') {
+    return 'The organization has reached its limit of segments. Reuse one from list-segments, or tell the user.';
+  }
+  if (error.code === 'segment_not_ready') {
+    return "The segment's members are still being computed. Call get-segment until its `status` is `ready`, then try again.";
+  }
+  if (error.code === 'domain_limit_reached' || error.code === 'domain_unavailable') {
+    return 'This domain cannot be registered for this organization. Do not retry; tell the user.';
+  }
+  if (error.code === 'template_name_duplicate') {
+    return 'A WhatsApp template with this name and language already exists. Find it with list-whatsapp-templates and its `name`, or choose another name.';
   }
   if (error.code === 'validation_error' || error.code === 'bad_request') {
     return `Correct the input named above and call ${tool.name} again.`;

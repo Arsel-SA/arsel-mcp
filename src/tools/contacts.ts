@@ -11,9 +11,9 @@ export const contactTools: ArselTool[] = [
     path: '/contacts',
     description: `**Purpose:** List contacts, or look one person up.
 
-**Use when:** the user asks "is X a contact?", "who is in this list?", "who has this tag?". Pass an exact \`email\`, \`phone_number\` or \`external_id\` to find one person, or \`list_id\` / \`tag_id\` to see an audience.
+**Use when:** the user asks "is X a contact?", "who is in this list?", "who has this tag?", "who is in this segment?". Pass an exact \`email\`, \`phone_number\` or \`external_id\` to find one person, or \`list_id\` / \`tag_id\` / \`segment_id\` to see an audience.
 
-**Not for:** counting a list or tag (get-list and get-tag return \`contact_count\`). ${QUIET_IDS}`,
+**Not for:** counting a list, tag or segment (get-list, get-tag and get-segment return \`contact_count\`). ${QUIET_IDS}`,
     inputSchema: z.object({
       ...pagination,
       email: z.string().optional().describe('Exact email, case-insensitive.'),
@@ -27,6 +27,12 @@ export const contactTools: ArselTool[] = [
         .describe("Exact match on the organization's own identifier."),
       list_id: z.string().optional().describe('Only contacts in this list.'),
       tag_id: z.string().optional().describe('Only contacts with this tag.'),
+      segment_id: z
+        .string()
+        .optional()
+        .describe(
+          "Only the members of this segment, as of the segment's `counted_at`. Refused while the segment is `processing`.",
+        ),
     }),
   },
   {

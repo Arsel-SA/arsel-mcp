@@ -10,7 +10,9 @@ import { ALL_TOOLS } from '../src/tools/index.js';
  */
 interface Schema {
   $ref?: string;
+  $defs?: Record<string, Schema>;
   type?: string;
+  const?: string;
   enum?: string[];
   items?: Schema;
   properties?: Record<string, Schema>;
@@ -40,22 +42,36 @@ function operationFor(tool: ArselTool): Operation | undefined {
   return specPath ? spec.paths[specPath]?.[tool.method.toLowerCase()] : undefined;
 }
 
+type Defs = Record<string, Schema>;
+
 /** Follows `$ref`s and the single-branch wrappers both generators emit for nullable or described fields. */
-function resolve(schema: Schema | undefined): Schema {
+function resolve(schema: Schema | undefined, defs: Defs): Schema {
   if (!schema) return {};
-  if (schema.$ref) {
-    return resolve(spec.components.schemas[schema.$ref.split('/').pop() ?? '']);
-  }
+  if (schema.$ref) return resolve(defs[schema.$ref.split('/').pop() ?? ''], defs);
   const branches = schema.allOf ?? schema.anyOf ?? schema.oneOf;
   const branch = branches?.filter((b) => b.type !== 'null');
-  if (branch?.length === 1) return resolve({ ...schema, ...branch[0], allOf: undefined, anyOf: undefined, oneOf: undefined });
+  if (branch?.length === 1) return resolve({ ...schema, ...branch[0], allOf: undefined, anyOf: undefined, oneOf: undefined }, defs);
   return schema;
+}
+
+/** The branches of a union keyed by their `type` tag, or nothing when it is not a tagged union. */
+function variants(schema: Schema, defs: Defs): Map<string, Schema> | undefined {
+  const branches = schema.oneOf ?? schema.anyOf;
+  if (!branches || branches.length < 2) return undefined;
+  const tagged = new Map<string, Schema>();
+  for (const branch of branches) {
+    const tag = resolve(branch, defs).properties?.type;
+    const value = tag?.const ?? (tag?.enum?.length === 1 ? tag.enum[0] : undefined);
+    if (value === undefined) return undefined;
+    tagged.set(value, branch);
+  }
+  return tagged;
 }
 
 /** Query parameters for GET as one object schema, the request body otherwise. */
 function specInput(tool: ArselTool, operation: Operation): Schema {
   if (tool.method !== 'GET') {
-    return resolve(operation.requestBody?.content['application/json']?.schema);
+    return resolve(operation.requestBody?.content['application/json']?.schema, spec.components.schemas);
   }
   const query = (operation.parameters ?? []).filter((p) => p.in === 'query');
   return {
@@ -79,32 +95,60 @@ function toolInput(tool: ArselTool): Schema {
 
 type Kind = 'fields' | 'required' | 'enums';
 
-/** Walks both schemas side by side, into nested objects and arrays, and reports where they disagree. */
-function mismatches(ours: Schema, theirs: Schema, kind: Kind, at = 'input'): string[] {
-  const a = resolve(ours);
-  const b = resolve(theirs);
-  if (a.items || b.items) return mismatches(a.items ?? {}, b.items ?? {}, kind, `${at}[]`);
+interface Walk {
+  kind: Kind;
+  /** The tool schema's own `$defs`; the API side resolves against the spec. */
+  defs: Defs;
+  /** Pairs of `$ref`s already compared, so a recursive schema ends. */
+  seen: Set<string>;
+}
+
+/** Walks both schemas side by side, into nested objects, arrays and tagged unions, and reports where they disagree. */
+function mismatches(ours: Schema, theirs: Schema, walk: Walk, at = 'input'): string[] {
+  if (ours.$ref && theirs.$ref) {
+    const pair = `${ours.$ref} ${theirs.$ref}`;
+    if (walk.seen.has(pair)) return [];
+    walk.seen.add(pair);
+  }
+  const { kind } = walk;
+  const a = resolve(ours, walk.defs);
+  const b = resolve(theirs, spec.components.schemas);
+  if (a.items || b.items) return mismatches(a.items ?? {}, b.items ?? {}, walk, `${at}[]`);
 
   const problems: string[] = [];
+  const mine = variants(a, walk.defs);
+  const api = variants(b, spec.components.schemas);
+  if (mine && api) {
+    const tags = [...mine.keys()].sort();
+    const apiTags = [...api.keys()].sort();
+    if (kind === 'fields' && tags.join() !== apiTags.join()) {
+      problems.push(`${at}: tool has the variants [${tags}], API has [${apiTags}]`);
+    }
+    for (const tag of tags.filter((t) => api.has(t))) {
+      problems.push(...mismatches(mine.get(tag) ?? {}, api.get(tag) ?? {}, walk, `${at}<${tag}>`));
+    }
+    return problems;
+  }
+
   if (kind === 'enums' && a.enum && b.enum) {
     const extra = a.enum.filter((v) => !b.enum?.includes(v));
     if (extra.length) problems.push(`${at}: the API rejects ${extra.join(', ')}`);
   }
   if (!a.properties || !b.properties) return problems;
 
-  const mine = Object.keys(a.properties).sort();
-  const api = Object.keys(b.properties).sort();
-  if (kind === 'fields' && mine.join() !== api.join()) {
-    problems.push(`${at}: tool has [${mine}], API has [${api}]`);
+  const fields = Object.keys(a.properties).sort();
+  const apiFields = Object.keys(b.properties).sort();
+  if (kind === 'fields' && fields.join() !== apiFields.join()) {
+    problems.push(`${at}: tool has [${fields}], API has [${apiFields}]`);
   }
   if (kind === 'required') {
     const r1 = [...(a.required ?? [])].sort();
     const r2 = [...(b.required ?? [])].sort();
     if (r1.join() !== r2.join()) problems.push(`${at}: tool requires [${r1}], API requires [${r2}]`);
   }
-  for (const name of mine.filter((n) => api.includes(n))) {
+  for (const name of fields.filter((n) => apiFields.includes(n))) {
     problems.push(
-      ...mismatches(a.properties[name] ?? {}, b.properties[name] ?? {}, kind, `${at}.${name}`),
+      ...mismatches(a.properties[name] ?? {}, b.properties[name] ?? {}, walk, `${at}.${name}`),
     );
   }
   return problems;
@@ -112,7 +156,9 @@ function mismatches(ours: Schema, theirs: Schema, kind: Kind, at = 'input'): str
 
 function check(tool: ArselTool, kind: Kind): string[] {
   const operation = operationFor(tool);
-  return operation ? mismatches(toolInput(tool), specInput(tool, operation), kind) : [];
+  if (!operation) return [];
+  const input = toolInput(tool);
+  return mismatches(input, specInput(tool, operation), { kind, defs: input.$defs ?? {}, seen: new Set() });
 }
 
 const cases = ALL_TOOLS.map((tool) => [tool.name, tool] as const);

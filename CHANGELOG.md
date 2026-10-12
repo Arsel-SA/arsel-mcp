@@ -5,6 +5,19 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `create-segment` and `update-segment`: build a segment from the same rules as the dashboard's segment builder (contact fields and custom properties, lists and tags, channel status, engagement counts and dates, engagement with one campaign or automation, and events with conditions on their data), in `and` / `or` groups that nest.
+- `get-segment` and `list-segments` return a segment's rules and whether its members are still being computed, and `list-contacts` takes `segment_id` to list a segment's members.
+- `get-email-campaign-stats`, `get-sms-campaign-stats`, `get-push-campaign-stats` and `get-in-app-campaign-stats`: a campaign's delivery, engagement and attributed conversions.
+- `get-email-domain`, `create-email-domain` and `verify-email-domain`: register a sending domain, read the DNS records to publish and check them.
+- `list-whatsapp-templates`, `get-whatsapp-template`, `create-whatsapp-template` and `update-whatsapp-template`: write a WhatsApp template, submit it to Meta and follow its review.
+
+### Changed
+
+- A record that is not found below another one, such as a campaign's stats, now points the agent at the list tool for that record.
+- `npm run openapi:update` keeps the snapshot's key order, so its diff shows only what changed in the API.
+
 ## [0.2.0] - 2026-10-05
 
 ### Added

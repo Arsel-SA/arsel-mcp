@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { ArselTool } from './define.js';
-import { pagination, QUIET_IDS } from './shared.js';
+import { id, pagination, QUIET_IDS } from './shared.js';
 
 export const accountTools: ArselTool[] = [
   {
@@ -9,8 +9,44 @@ export const accountTools: ArselTool[] = [
     scope: 'read',
     method: 'GET',
     path: '/email/domains',
-    description: `List the organization's sending domains and their verification status. Any address at a \`verified\` domain can be an email campaign's \`from\`. Domains are added and verified in the Arsel dashboard. ${QUIET_IDS}`,
+    description: `List the organization's sending domains and their verification status. Any address at a \`verified\` domain can be an email campaign's \`from\`. Register a new one with create-email-domain. ${QUIET_IDS}`,
     inputSchema: z.object(pagination),
+  },
+  {
+    name: 'get-email-domain',
+    title: 'Get Email Sending Domain',
+    scope: 'read',
+    method: 'GET',
+    path: '/email/domains/{id}',
+    description:
+      'Get one sending domain with the DNS records to publish and the status of each as of the last check. The domain is `verified` once every `required` record is; the other records are recommended for deliverability. To check the records again now, call verify-email-domain.',
+    inputSchema: z.object({ id: id('domain') }),
+  },
+  {
+    name: 'create-email-domain',
+    title: 'Register Email Sending Domain',
+    scope: 'write',
+    method: 'POST',
+    path: '/email/domains',
+    description:
+      "Register a domain to send email from and get the DNS records to publish at its DNS provider. The domain starts `pending` and cannot send until it is `verified`. This server cannot change DNS: give the user every record exactly as returned (type, name and value), saying which are `required`, then call verify-email-domain once they have published them. Registering a domain the organization already has returns its current state, and only one domain can be registered at a time.",
+    inputSchema: z.object({
+      name: z
+        .string()
+        .min(1)
+        .max(255)
+        .describe('The domain to send from, e.g. mail.acme.com.'),
+    }),
+  },
+  {
+    name: 'verify-email-domain',
+    title: 'Verify Email Sending Domain',
+    scope: 'write',
+    method: 'POST',
+    path: '/email/domains/{id}/verify',
+    description:
+      "Check a sending domain's DNS records now, instead of waiting for the periodic check, and return the result. A record published minutes ago can still read `pending` while DNS catches up: tell the user and try again later rather than calling in a loop.",
+    inputSchema: z.object({ id: id('domain') }),
   },
   {
     name: 'list-sms-senders',
