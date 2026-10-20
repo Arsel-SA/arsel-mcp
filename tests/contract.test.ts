@@ -154,11 +154,26 @@ function mismatches(ours: Schema, theirs: Schema, walk: Walk, at = 'input'): str
   return problems;
 }
 
+/** The API's input less the fields the tool withholds, each of which must still exist there. */
+function offeredInput(tool: ArselTool, operation: Operation): Schema {
+  const api = specInput(tool, operation);
+  const withheld = tool.withheld ?? [];
+  const missing = withheld.filter((name) => !api.properties?.[name]);
+  if (missing.length) throw new Error(`${tool.name} withholds [${missing}], which the API does not have`);
+  return {
+    ...api,
+    properties: Object.fromEntries(
+      Object.entries(api.properties ?? {}).filter(([name]) => !withheld.includes(name)),
+    ),
+    required: (api.required ?? []).filter((name) => !withheld.includes(name)),
+  };
+}
+
 function check(tool: ArselTool, kind: Kind): string[] {
   const operation = operationFor(tool);
   if (!operation) return [];
   const input = toolInput(tool);
-  return mismatches(input, specInput(tool, operation), { kind, defs: input.$defs ?? {}, seen: new Set() });
+  return mismatches(input, offeredInput(tool, operation), { kind, defs: input.$defs ?? {}, seen: new Set() });
 }
 
 const cases = ALL_TOOLS.map((tool) => [tool.name, tool] as const);

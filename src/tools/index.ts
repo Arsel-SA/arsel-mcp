@@ -1,5 +1,6 @@
 import { accountTools } from './account.js';
 import { audienceTools } from './audiences.js';
+import { automationTools } from './automations.js';
 import { campaignTools } from './campaigns.js';
 import { contactTools } from './contacts.js';
 import type { ArselTool } from './define.js';
@@ -11,6 +12,7 @@ export const ALL_TOOLS: readonly ArselTool[] = [
   ...contactTools,
   ...audienceTools,
   ...campaignTools,
+  ...automationTools,
   ...templateTools,
   ...dataModelTools,
   ...messageTools,

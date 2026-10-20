@@ -127,7 +127,7 @@ const messageEngagement = z
       .string()
       .min(1)
       .describe(
-        "The id of that campaign, automation or automation step. Campaign ids come from the channel's campaign list tool, e.g. list-email-campaigns. This server cannot list automations, so ask the user for those ids.",
+        "The campaign id, from the channel's campaign list tool (e.g. list-email-campaigns); the automation id, from list-automations; or, for `automation_step`, a step `key` as get-automation shows it. Inside an automation's condition or wait, `automation_step` names an earlier send step of that same automation.",
       ),
     channel: z.enum(CHANNELS).optional().describe("The message's channel."),
     action: z.enum(ACTIONS),

@@ -22,6 +22,8 @@ export interface ArselTool {
   path: string;
   inputSchema: z.ZodObject;
   destructive?: boolean;
+  /** Body fields the API takes that this tool leaves out because they reach recipients, e.g. a `status` that starts sending. */
+  withheld?: readonly string[];
 }
 
 const PATH_PARAM = /\{([a-z_]+)\}/g;
@@ -137,6 +139,12 @@ function recoveryHint(
   }
   if (error.code === 'template_name_duplicate') {
     return 'A WhatsApp template with this name and language already exists. Find it with list-whatsapp-templates and its `name`, or choose another name.';
+  }
+  if (error.code === 'automation_graph_invalid') {
+    return `The steps break a rule of the automation's shape, named above, and nothing was saved. Fix the graph and call ${tool.name} again.`;
+  }
+  if (error.code === 'automation_enabled') {
+    return 'This automation is live, so its steps cannot be replaced. Ask the user to disable it in the Arsel dashboard first, or build the change on a copy from clone-automation.';
   }
   if (error.code === 'validation_error' || error.code === 'bad_request') {
     return `Correct the input named above and call ${tool.name} again.`;

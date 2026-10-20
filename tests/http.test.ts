@@ -133,7 +133,7 @@ describe('HTTP transport', () => {
   it('lists the tools over HTTP', async () => {
     const client = await connect('be_alice');
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(77);
+    expect(tools).toHaveLength(84);
     await client.close();
   });
 });

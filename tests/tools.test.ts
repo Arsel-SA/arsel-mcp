@@ -22,8 +22,8 @@ describe('tool catalogue', () => {
   it('exposes read and draft tools, and nothing that sends', () => {
     const count = (scope: string) =>
       ALL_TOOLS.filter((t) => t.scope === scope).length;
-    expect(count('read')).toBe(45);
-    expect(count('write')).toBe(32);
+    expect(count('read')).toBe(49);
+    expect(count('write')).toBe(35);
     expect(count('send')).toBe(0);
   });
 
@@ -205,6 +205,60 @@ describe('segment filter', () => {
       ]) {
         expect(description, name).toContain(source);
       }
+    }
+  });
+});
+
+describe('automation graph', () => {
+  const create = byName('create-automation').inputSchema;
+  const tag = '01957e3a-4b5c-7d8e-9f0a-1b2c3d4e5f6a';
+  const opened = {
+    type: 'group',
+    operator: 'and',
+    conditions: [
+      { type: 'message_engagement', target_type: 'automation_step', target_id: 'welcome', action: 'opened' },
+    ],
+  };
+  const graph = {
+    name: 'Welcome series',
+    steps: [
+      { key: 'trigger', type: 'trigger', name: 'Signed up', config: { event: 'custom_event', event_name: 'signed_up', reentry: { mode: 'once' } } },
+      { key: 'welcome', type: 'send_email', name: 'Welcome', config: { template_id: tag, from_domain: 'mail.example.com', from_prefix: 'hello', from_name: 'Acme' } },
+      { key: 'wait_open', type: 'wait_for_event', name: 'Opened?', config: { filter: opened, timeout: { value: 3, unit: 'days' } } },
+      { key: 'nudge', type: 'send_sms', name: 'Nudge', config: { content: 'Hi', purpose: 'marketing', sender_by_country: { SA: 'Acme' } } },
+      { key: 'vip', type: 'condition', name: 'VIP?', config: { filter: { type: 'group', operator: 'and', conditions: [{ type: 'tag', tag_ids: [tag] }] } } },
+      { key: 'wa', type: 'send_whatsapp', name: 'WA', config: { template_name: 'offer', language: 'en', parameters: { first_name: 'there' } } },
+      { key: 'push', type: 'send_push', name: 'Push', config: { title: 'Hi', body: 'There', action_buttons: [{ action_id: 'open', label: 'Open' }] } },
+      { key: 'in_app', type: 'show_in_app', name: 'In-app', config: { campaign_id: null } },
+      { key: 'tagged', type: 'add_tag', name: 'Tag', config: { tag_id: tag } },
+      { key: 'untagged', type: 'remove_tag', name: 'Untag', config: {} },
+      { key: 'listed', type: 'add_to_list', name: 'List', config: { list_id: tag } },
+      { key: 'unlisted', type: 'remove_from_list', name: 'Unlist', config: { list_id: tag } },
+      { key: 'update', type: 'update_contact', name: 'Update', config: { properties: { plan: 'pro', seats: 3 } } },
+      { key: 'later', type: 'delay', name: 'Later', config: { duration: { value: 2, unit: 'hours' } } },
+    ],
+    connections: [
+      { from: 'trigger', to: 'welcome', type: 'default' },
+      { from: 'wait_open', to: 'nudge', type: 'timeout' },
+    ],
+  };
+
+  it('accepts every step type, nulls and unfinished configs included', () => {
+    expect(create.parse(graph)).toEqual(graph);
+  });
+
+  it.each([
+    ['a camelCase config key, which would otherwise be dropped', { key: 'later', type: 'delay', name: 'Later', config: { durationValue: 2 } }],
+    ['a trigger under another key', { key: 'start', type: 'trigger', name: 'Start', config: {} }],
+    ['an unknown step type', { key: 'hook', type: 'webhook', name: 'Hook', config: {} }],
+    ['a step key with a dash', { key: 'send-email', type: 'add_tag', name: 'Tag', config: {} }],
+  ])('refuses %s', (_what, step) => {
+    expect(create.safeParse({ ...graph, steps: [...graph.steps, step] }).success).toBe(false);
+  });
+
+  it('cannot enable or disable: status is left to the dashboard', () => {
+    for (const name of ['create-automation', 'update-automation']) {
+      expect(byName(name).inputSchema.shape).not.toHaveProperty('status');
     }
   });
 });

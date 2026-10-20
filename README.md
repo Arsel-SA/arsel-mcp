@@ -1,10 +1,10 @@
 # Arsel MCP Server
 
-An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, campaign results, templates and message logs, build segments, and draft campaigns for you to review and send.
+An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, campaign results, templates and message logs, build segments, and draft campaigns and automations for you to review, send and turn on.
 
 It is a thin client over the [Arsel API](https://docs.arsel.sa). Every tool is one API call made as you, on the organization you connect, so the agent sees exactly what you'd see through the API.
 
-> **Drafts only.** This server cannot send or schedule messages. Campaigns it creates are saved as drafts, and you send them from the Arsel dashboard.
+> **Drafts only.** This server cannot send or schedule messages, or turn an automation on or off. Campaigns and automations it creates are saved as drafts, and you send or enable them from the Arsel dashboard.
 
 ## Requirements
 
@@ -94,6 +94,7 @@ claude mcp add --transport http arsel https://mcp.arsel.sa/mcp \
 | Email campaigns | `list-email-campaigns` `get-email-campaign` `create-email-campaign` `update-email-campaign` `get-email-campaign-stats` |
 | SMS campaigns | `list-sms-campaigns` `get-sms-campaign` `create-sms-campaign` `update-sms-campaign` `get-sms-campaign-stats` |
 | Push campaigns | `list-push-campaigns` `get-push-campaign` `create-push-campaign` `update-push-campaign` `get-push-campaign-stats` |
+| Automations | `list-automations` `get-automation` `create-automation` `update-automation` `clone-automation` `list-automation-runs` `get-automation-run` |
 | In-app campaigns | `list-in-app-campaigns` `get-in-app-campaign` `create-in-app-campaign` `update-in-app-campaign` `clone-in-app-campaign` `get-in-app-campaign-stats` |
 | Templates | `list-templates` `get-template` `create-template` `update-template` `list-gallery-categories` `list-gallery-templates` `get-gallery-template` `copy-gallery-template` |
 | WhatsApp templates | `list-whatsapp-templates` `get-whatsapp-template` `create-whatsapp-template` `update-whatsapp-template` |

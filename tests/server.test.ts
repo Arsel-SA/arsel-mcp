@@ -26,7 +26,7 @@ describe('createMcpServer', () => {
     const get = tools.find((t) => t.name === 'get-contact');
     const update = tools.find((t) => t.name === 'update-contact');
 
-    expect(tools).toHaveLength(77);
+    expect(tools).toHaveLength(84);
     expect(get?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     expect(update?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
   });

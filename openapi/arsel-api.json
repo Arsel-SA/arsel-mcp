@@ -1982,7 +1982,7 @@
     },
     "/v1/sms/send": {
       "post": {
-        "description": "Send transactional SMS for time-sensitive notifications.\n\n**Phone Number Format:**\n- KSA: `+9665XXXXXXXX` (13 chars with +)\n- Egypt: `+201XXXXXXXXX` (13 chars with +)\n\n**Character Encoding:**\n- GSM (Latin, digits, basic symbols): 160 chars/SMS, 153 chars/part for multi-part\n- Unicode (Arabic, emoji): 70 chars/SMS, 67 chars/part for multi-part\n\n**Template Variables:**\nUse `variables` with `{{variableName}}` syntax.\n\n**Important:** All recipients must be from the same country. Mixing KSA and Egypt numbers in one request is not allowed.\n\n**Rate Limit:** 1000 requests/minute per organization.",
+        "description": "Send transactional SMS for time-sensitive notifications.\n\n**Phone Number Format:**\n- Mobile numbers in E.164 format, e.g. `+966512345678`\n\n**Character Encoding:**\n- GSM (Latin, digits, basic symbols): 160 chars/SMS, 153 chars/part for multi-part\n- Unicode (Arabic, emoji): 70 chars/SMS, 67 chars/part for multi-part\n\n**Template Variables:**\nUse `variables` with `{{variableName}}` syntax.\n\n**Important:** All recipients must be from the same country, and the sender must be approved for it. Mixing countries in one request is not allowed.\n\n**Rate Limit:** 1000 requests/minute per organization.",
         "operationId": "sms.send",
         "parameters": [
           {
@@ -9727,6 +9727,791 @@
           "WhatsApp Campaigns"
         ]
       }
+    },
+    "/v1/automations": {
+      "post": {
+        "description": "Create an automation, a `draft` unless `status` is `enabled`. Send `steps` and `connections` to build it here, or leave them out and build it in the dashboard. A draft may be unfinished: `issues` on the automation lists what is left before it can be enabled. A graph that breaks a structural rule (a missing trigger, a connection to an unknown step, a loop) is refused.",
+        "operationId": "automations.create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAutomationDevApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Automation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid body (`validation_error`); steps that cannot be saved as drawn (`automation_graph_invalid`); or `status: enabled` while it has issues (`automation_not_ready`), each listed in the message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Create an automation",
+        "tags": [
+          "Automations"
+        ]
+      },
+      "get": {
+        "description": "A page of automations, most recently created first.",
+        "operationId": "automations.list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "enabled",
+                "disabled"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of automations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List automations",
+        "tags": [
+          "Automations"
+        ]
+      }
+    },
+    "/v1/automations/{id}": {
+      "get": {
+        "description": "The automation with its latest steps, and what is left to fix before it can be enabled.",
+        "operationId": "automations.get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Automation details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get an automation",
+        "tags": [
+          "Automations"
+        ]
+      },
+      "patch": {
+        "description": "Rename it, replace its steps, enable or disable it. In one request these apply in that order: rename, disable, replace the steps, enable. A refused request changes nothing. To change a live automation, send `status: disabled` with the new steps, then `status: enabled`.\n\nEnabling publishes the latest steps, so contacts follow what `get` shows, and starts letting in every contact who matches the trigger: it sends messages. It is refused while `issues` is not empty. Contacts already in the automation keep following the version they entered.\n\nEach contact that enters uses one of the plan’s monthly automation runs. Once they are used up, new entries are skipped until the next period; the automation stays enabled and contacts already in it finish.\n\nThe steps of an enabled automation cannot be replaced; disable it first or in the same request.",
+        "operationId": "automations.update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAutomationDevApiDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Automation updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid body (`validation_error`); steps that cannot be saved as drawn (`automation_graph_invalid`); steps for an automation that stays enabled (`automation_enabled`); or enabling one that has issues (`automation_not_ready`), each listed in the message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Update an automation",
+        "tags": [
+          "Automations"
+        ]
+      },
+      "delete": {
+        "description": "Delete an automation. The runs in progress end; their history stays.",
+        "operationId": "automations.remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Automation deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeletedResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Delete an automation",
+        "tags": [
+          "Automations"
+        ]
+      }
+    },
+    "/v1/automations/{id}/clone": {
+      "post": {
+        "description": "Copy the latest steps into a new `draft` named “Copy of …”.",
+        "operationId": "automations.clone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The new draft",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Clone an automation",
+        "tags": [
+          "Automations"
+        ]
+      }
+    },
+    "/v1/automations/{id}/runs": {
+      "get": {
+        "description": "One run per contact entry, most recent first. Test runs started from the dashboard are not listed.",
+        "operationId": "automations.runs.list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Number of items to return per page (1-100).",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return items after this ID (exclusive). Use the `id` of the last item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return items before this ID (exclusive). Use the `id` of the first item from the previous page.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Only runs in these statuses, comma-separated: `running`, `waiting`, `completed`, `failed`, `cancelled`",
+            "schema": {
+              "example": "running,waiting",
+              "type": "string"
+            }
+          },
+          {
+            "name": "contact_id",
+            "required": false,
+            "in": "query",
+            "description": "Only the runs of this contact",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationRunListResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List the runs of an automation",
+        "tags": [
+          "Automations"
+        ]
+      }
+    },
+    "/v1/automations/{id}/runs/{run_id}": {
+      "get": {
+        "description": "What started the run and each step it has been through: completed, skipped (with the reason a message was not sent) or failed.",
+        "operationId": "automations.runs.get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Automation ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "run_id",
+            "required": true,
+            "in": "path",
+            "description": "Run ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationRunDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Automations are not available for this organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Automation or run not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Retry after the `retry-after` header.",
+            "headers": {
+              "retry-after": {
+                "description": "Seconds to wait before retrying.",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevApiErrorResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Get a run",
+        "tags": [
+          "Automations"
+        ]
+      }
     }
   },
   "info": {
@@ -9781,6 +10566,9 @@
               "invalid_idempotent_request",
               "concurrent_idempotent_requests",
               "anonymous_id_not_allowed",
+              "automation_enabled",
+              "automation_graph_invalid",
+              "automation_not_ready",
               "contact_ambiguous",
               "contact_id_not_allowed",
               "contact_not_found",
@@ -11018,7 +11806,7 @@
             "example": "Basics"
           },
           "to": {
-            "description": "Recipient phone number(s) in international format. KSA: +9665XXXXXXXX. Egypt: +201XXXXXXXXX. Max 100 per request.",
+            "description": "Recipient mobile number(s) in E.164 format. All recipients must be in the same country, and the sender must be approved for it. Max 100 per request.",
             "example": [
               "+201234567890"
             ],
@@ -16455,6 +17243,1521 @@
         ],
         "additionalProperties": false,
         "description": "A group of rules a contact must match. Groups nest up to 10 levels and hold at most 100 rules in total."
+      },
+      "AutomationConnectionDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Key of the step it leaves",
+            "example": "trigger"
+          },
+          "to": {
+            "type": "string",
+            "description": "Key of the step it enters",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "default",
+              "condition_met",
+              "condition_not_met",
+              "event_received",
+              "timeout"
+            ],
+            "description": "`default` after any step but a condition or a wait. A `condition` leaves by `condition_met` and `condition_not_met`, a `wait_for_event` by `event_received` and `timeout`. A branch with no connection ends the run.",
+            "example": "default"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "type"
+        ]
+      },
+      "CreateAutomationDevApiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Welcome series",
+            "maxLength": 255
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled"
+            ],
+            "description": "Enable it as it is created. Refused, and nothing is created, while it has `issues`. Left out, the automation is a `draft`."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationStep"
+            },
+            "description": "The whole graph, trigger included. Send it with `connections`; together they replace what was there."
+          },
+          "connections": {
+            "description": "Send it with `steps`.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationConnectionDto"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "AutomationIssueDto": {
+        "type": "object",
+        "properties": {
+          "step_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "The step it concerns; `null` for the automation as a whole",
+            "example": "welcome_email"
+          },
+          "path": {
+            "type": "string",
+            "description": "Where in the step’s `config`",
+            "example": "template_id"
+          },
+          "message": {
+            "type": "string",
+            "example": "Choose an email template"
+          }
+        },
+        "required": [
+          "step_key",
+          "path",
+          "message"
+        ]
+      },
+      "AutomationDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Welcome series"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "enabled",
+              "disabled"
+            ],
+            "example": "enabled",
+            "description": "`draft` until first enabled; then `enabled` or `disabled`. Only an enabled automation lets contacts in."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationStep"
+            },
+            "description": "The latest steps. The trigger is a step too."
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationConnectionDto"
+            }
+          },
+          "issues": {
+            "description": "What must be fixed before the automation can be enabled. Empty when it is ready.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationIssueDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "created_at",
+          "updated_at",
+          "steps",
+          "connections",
+          "issues"
+        ]
+      },
+      "AutomationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Welcome series"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "enabled",
+              "disabled"
+            ],
+            "example": "enabled",
+            "description": "`draft` until first enabled; then `enabled` or `disabled`. Only an enabled automation lets contacts in."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "AutomationListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "UpdateAutomationDevApiDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Welcome series",
+            "maxLength": 255
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "description": "`enabled` publishes the latest steps and lets contacts in. `disabled` stops new entries; contacts already in finish."
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationStep"
+            },
+            "description": "The whole graph, trigger included. Send it with `connections`; together they replace what was there. Refused while the automation is enabled, unless this request also sets `status: disabled`."
+          },
+          "connections": {
+            "description": "Send it with `steps`.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationConnectionDto"
+            }
+          }
+        }
+      },
+      "AutomationRunFailureDto": {
+        "type": "object",
+        "properties": {
+          "step_key": {
+            "type": "string",
+            "example": "welcome_email"
+          },
+          "message": {
+            "type": "string",
+            "example": "The template was deleted"
+          }
+        },
+        "required": [
+          "step_key",
+          "message"
+        ]
+      },
+      "AutomationRunResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "example": "waiting",
+            "description": "`waiting` while the run sits in a delay or a wait; `running` between steps."
+          },
+          "contact_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "current_step_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "The step the run is on, or the one it failed on. `null` once it has finished otherwise.",
+            "example": "wait_for_purchase"
+          },
+          "failure": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AutomationRunFailureDto"
+              }
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "`null` until the run has finished",
+            "example": null
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "contact_id",
+          "current_step_key",
+          "failure",
+          "started_at",
+          "completed_at"
+        ]
+      },
+      "AutomationRunListResponseDto": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "example": "list",
+            "enum": [
+              "list"
+            ]
+          },
+          "has_more": {
+            "type": "boolean",
+            "example": false
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationRunResponseDto"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "has_more",
+          "data"
+        ]
+      },
+      "AutomationRunTriggerDto": {
+        "type": "object",
+        "properties": {
+          "event": {
+            "type": "string",
+            "description": "The trigger event that started the run",
+            "example": "custom_event"
+          },
+          "event_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "For a `custom_event` trigger, the event’s name",
+            "example": "cart_abandoned"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "event",
+          "event_name",
+          "timestamp"
+        ]
+      },
+      "AutomationRunStepResponseDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "trigger",
+              "send_email",
+              "send_sms",
+              "send_whatsapp",
+              "send_push",
+              "show_in_app",
+              "add_tag",
+              "remove_tag",
+              "add_to_list",
+              "remove_from_list",
+              "update_contact",
+              "delay",
+              "condition",
+              "wait_for_event"
+            ],
+            "example": "send_email"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "skipped",
+              "failed"
+            ],
+            "example": "completed"
+          },
+          "outcome": {
+            "type": "string",
+            "nullable": true,
+            "description": "The connection the run left by: `default`, or a branch of a `condition` or a `wait_for_event`. `null` when the step failed.",
+            "example": "default"
+          },
+          "skip_reason": {
+            "type": "string",
+            "nullable": true,
+            "description": "Why a message was not sent, e.g. `no_email`, `suppressed`, `smart_sending`",
+            "example": null
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "status",
+          "outcome",
+          "skip_reason",
+          "error",
+          "completed_at"
+        ]
+      },
+      "AutomationRunDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "example": "waiting",
+            "description": "`waiting` while the run sits in a delay or a wait; `running` between steps."
+          },
+          "contact_id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "current_step_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "The step the run is on, or the one it failed on. `null` once it has finished otherwise.",
+            "example": "wait_for_purchase"
+          },
+          "failure": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AutomationRunFailureDto"
+              }
+            ]
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "`null` until the run has finished",
+            "example": null
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/AutomationRunTriggerDto"
+          },
+          "steps": {
+            "description": "The steps the run has been through, in order",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutomationRunStepResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "contact_id",
+          "current_step_key",
+          "failure",
+          "started_at",
+          "completed_at",
+          "trigger",
+          "steps"
+        ]
+      },
+      "AutomationStep": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/AutomationTriggerStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationSendEmailStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationSendSmsStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationSendWhatsappStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationSendPushStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationShowInAppStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationAddTagStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationRemoveTagStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationAddToListStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationRemoveFromListStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationUpdateContactStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationDelayStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationConditionStep"
+          },
+          {
+            "$ref": "#/components/schemas/AutomationWaitForEventStep"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "trigger": "#/components/schemas/AutomationTriggerStep",
+            "send_email": "#/components/schemas/AutomationSendEmailStep",
+            "send_sms": "#/components/schemas/AutomationSendSmsStep",
+            "send_whatsapp": "#/components/schemas/AutomationSendWhatsappStep",
+            "send_push": "#/components/schemas/AutomationSendPushStep",
+            "show_in_app": "#/components/schemas/AutomationShowInAppStep",
+            "add_tag": "#/components/schemas/AutomationAddTagStep",
+            "remove_tag": "#/components/schemas/AutomationRemoveTagStep",
+            "add_to_list": "#/components/schemas/AutomationAddToListStep",
+            "remove_from_list": "#/components/schemas/AutomationRemoveFromListStep",
+            "update_contact": "#/components/schemas/AutomationUpdateContactStep",
+            "delay": "#/components/schemas/AutomationDelayStep",
+            "condition": "#/components/schemas/AutomationConditionStep",
+            "wait_for_event": "#/components/schemas/AutomationWaitForEventStep"
+          }
+        }
+      },
+      "AutomationTriggerStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "enum": [
+              "trigger"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "trigger"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationTriggerConfig"
+          }
+        },
+        "description": "What starts a run, and whether a contact may start another. Its target: `contact_created` takes none; `contact_unsubscribed` takes none; `tag_added` needs `tag_id`; `list_added` needs `list_id`; `form_submitted` needs `form_id`; `entered_segment` needs `segment_id`; `email_opened` needs `campaign_id`; `email_clicked` needs `campaign_id`; `email_bounced` needs `campaign_id`; `sms_clicked` needs `campaign_id`; `push_opened` takes `campaign_id` (left out: any); `push_clicked` takes `campaign_id` (left out: any); `in_app_shown` takes `campaign_id` (left out: any); `in_app_clicked` takes `campaign_id` (left out: any); `in_app_dismissed` takes `campaign_id` (left out: any); `custom_event` needs `event_name`. `reentry` unset reads as `always`."
+      },
+      "AutomationTriggerConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `event`.",
+        "properties": {
+          "event": {
+            "type": "string",
+            "enum": [
+              "contact_created",
+              "contact_unsubscribed",
+              "tag_added",
+              "list_added",
+              "form_submitted",
+              "entered_segment",
+              "email_opened",
+              "email_clicked",
+              "email_bounced",
+              "sms_clicked",
+              "push_opened",
+              "push_clicked",
+              "in_app_shown",
+              "in_app_clicked",
+              "in_app_dismissed",
+              "custom_event"
+            ],
+            "nullable": true
+          },
+          "tag_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "list_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "form_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "segment_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "event_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "reentry": {
+            "type": "object",
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "always",
+                  "once",
+                  "window",
+                  "not_while_active"
+                ]
+              },
+              "window_hours": {
+                "nullable": true,
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8760
+              }
+            },
+            "required": [
+              "mode"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        }
+      },
+      "AutomationSendEmailStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "send_email"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationSendEmailConfig"
+          }
+        },
+        "description": "Sends from `from_prefix`@`from_domain`, a verified sending domain. `subject` and `preheader` may use merge tags."
+      },
+      "AutomationSendEmailConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `template_id`, `from_domain`, `from_prefix`, `from_name`.",
+        "properties": {
+          "template_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "from_domain": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "from_prefix": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._%+-]{1,64}$",
+            "nullable": true
+          },
+          "from_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "reply_to": {
+            "type": "string",
+            "maxLength": 320,
+            "format": "email",
+            "nullable": true
+          },
+          "subject": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 998,
+            "nullable": true
+          },
+          "preheader": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "nullable": true
+          },
+          "smart_sending": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationSendSmsStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "send_sms"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationSendSmsConfig"
+          }
+        },
+        "description": "The sender is chosen per contact from those registered for `purpose` in the contact’s country; `sender_by_country` picks one (country → sender name) where a country has several. `content` may use merge tags."
+      },
+      "AutomationSendSmsConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `content`, `purpose`.",
+        "properties": {
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1600,
+            "nullable": true
+          },
+          "purpose": {
+            "type": "string",
+            "enum": [
+              "marketing",
+              "transactional"
+            ],
+            "nullable": true
+          },
+          "sender_by_country": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "nullable": true
+          },
+          "smart_sending": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationSendWhatsappStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "send_whatsapp"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationSendWhatsappConfig"
+          }
+        },
+        "description": "`template_name` and `language` name an approved WhatsApp template; `parameters` maps each of its variables to a value, which may use merge tags."
+      },
+      "AutomationSendWhatsappConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `template_name`, `language`.",
+        "properties": {
+          "template_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "nullable": true
+          },
+          "language": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16,
+            "nullable": true
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "nullable": true
+          },
+          "smart_sending": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationSendPushStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "send_push"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationSendPushConfig"
+          }
+        },
+        "description": "Sends to every device of the contact. Text may use merge tags."
+      },
+      "AutomationSendPushConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `title`, `body`.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "nullable": true
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "image_url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "icon_url": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "deep_link": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "nullable": true
+          },
+          "android_channel_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "nullable": true
+          },
+          "action_buttons": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "label": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "deep_link": {
+                  "nullable": true,
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 2048
+                }
+              },
+              "required": [
+                "action_id",
+                "label"
+              ],
+              "additionalProperties": false
+            },
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 1024
+            },
+            "nullable": true
+          },
+          "ttl_seconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 2419200,
+            "nullable": true
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "high",
+              "normal"
+            ],
+            "nullable": true
+          },
+          "smart_sending": {
+            "type": "boolean",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationShowInAppStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "show_in_app"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationShowInAppConfig"
+          }
+        },
+        "description": "Shows an in-app campaign to the contact."
+      },
+      "AutomationShowInAppConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `campaign_id`.",
+        "properties": {
+          "campaign_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "expires_in_days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90,
+            "nullable": true
+          }
+        }
+      },
+      "AutomationAddTagStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "add_tag"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationTagConfig"
+          }
+        },
+        "description": "Adds the tag to the contact."
+      },
+      "AutomationTagConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `tag_id`.",
+        "properties": {
+          "tag_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationRemoveTagStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "remove_tag"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationTagConfig"
+          }
+        },
+        "description": "Removes the tag from the contact."
+      },
+      "AutomationAddToListStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "add_to_list"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationListConfig"
+          }
+        },
+        "description": "Adds the contact to the list."
+      },
+      "AutomationListConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `list_id`.",
+        "properties": {
+          "list_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        }
+      },
+      "AutomationRemoveFromListStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "remove_from_list"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationListConfig"
+          }
+        },
+        "description": "Removes the contact from the list."
+      },
+      "AutomationUpdateContactStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "update_contact"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationUpdateContactConfig"
+          }
+        },
+        "description": "Writes the values to the contact as given: merge tags are not rendered. `properties` keys are custom property keys."
+      },
+      "AutomationUpdateContactConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "nullable": true
+          },
+          "last_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "maxLength": 320,
+            "format": "email",
+            "nullable": true
+          },
+          "phone_number": {
+            "type": "string",
+            "pattern": "^\\+?[0-9]{6,20}$",
+            "nullable": true
+          },
+          "properties": {
+            "type": "object",
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 1000
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "nullable": true
+          }
+        }
+      },
+      "AutomationDelayStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "delay"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationDelayConfig"
+          }
+        },
+        "description": "Holds the run for `duration`, at most 365 days."
+      },
+      "AutomationDelayConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `duration`.",
+        "properties": {
+          "duration": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "minutes",
+                  "hours",
+                  "days"
+                ]
+              }
+            },
+            "required": [
+              "value",
+              "unit"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        }
+      },
+      "AutomationConditionStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "condition"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationConditionConfig"
+          }
+        },
+        "description": "Leaves by `condition_met` when the contact matches `filter`, otherwise by `condition_not_met`."
+      },
+      "AutomationConditionConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `filter`.",
+        "properties": {
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactFilter"
+              }
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "AutomationWaitForEventStep": {
+        "type": "object",
+        "required": [
+          "key",
+          "type",
+          "name",
+          "config"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "maxLength": 64,
+            "description": "Chosen by you and never changed: the step’s identity in connections, runs and results.",
+            "example": "welcome_email"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "wait_for_event"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "config": {
+            "$ref": "#/components/schemas/AutomationWaitForEventConfig"
+          }
+        },
+        "description": "Holds the run until the contact’s activity matches `filter` (leaves by `event_received`) or `timeout` passes (leaves by `timeout`)."
+      },
+      "AutomationWaitForEventConfig": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Needed to enable: `filter`, `timeout`.",
+        "properties": {
+          "filter": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactFilter"
+              }
+            ],
+            "nullable": true
+          },
+          "timeout": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "unit": {
+                "type": "string",
+                "enum": [
+                  "minutes",
+                  "hours",
+                  "days"
+                ]
+              }
+            },
+            "required": [
+              "value",
+              "unit"
+            ],
+            "additionalProperties": false,
+            "nullable": true
+          }
+        }
       }
     }
   }
