@@ -5,6 +5,8 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-21
+
 ### Added
 
 - `create-automation`, `update-automation` and `clone-automation`: build an automation as a draft, from a trigger and steps that send email, SMS, WhatsApp, push or in-app messages, wait, branch on a condition, wait for an event, tag, list or update the contact. The automation comes back with the `issues` left before it can be enabled; you enable it from the dashboard.
