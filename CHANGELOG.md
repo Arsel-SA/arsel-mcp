@@ -18,7 +18,7 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 2026-10-12
 
-The first stable release, and the first published to npm. Tool names and inputs now follow semantic versioning.
+The first stable release. Tool names and inputs now follow semantic versioning.
 
 ### Added
 
