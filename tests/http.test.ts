@@ -4,6 +4,7 @@ import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/cli
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { runHttp } from '../src/transports/http.js';
+import { VERSION } from '../src/version.js';
 import { fakeApi, textOf } from './helpers.js';
 
 const PUBLIC_URL = 'https://mcp.test';
@@ -114,6 +115,21 @@ describe('HTTP transport', () => {
     const client = await connect(token);
     const result = await client.callTool({ name: 'list-tags', arguments: {} });
     expect(JSON.parse(textOf(result))).toEqual({ key: `Bearer ${token}` });
+    await client.close();
+  });
+
+  it("names the transport and the MCP client's own User-Agent to the API", async () => {
+    const client = new Client({ name: 'test', version: '0' });
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), {
+        requestInit: { headers: { Authorization: 'Bearer be_key', 'User-Agent': 'Claude-User/1.0' } },
+      }),
+    );
+    api.requests.length = 0;
+
+    await client.callTool({ name: 'list-tags', arguments: {} });
+
+    expect(api.requests[0]?.headers.get('user-agent')).toBe(`arsel-mcp/${VERSION} (http; Claude-User/1.0)`);
     await client.close();
   });
 

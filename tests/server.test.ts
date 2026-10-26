@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { ArselClient } from '../src/client.js';
 import { createMcpServer, type ServerOptions } from '../src/server.js';
 import type { ArselTool } from '../src/tools/define.js';
+import { VERSION } from '../src/version.js';
 import { fakeApi, textOf } from './helpers.js';
 
 async function connect(fetch: typeof globalThis.fetch, options?: ServerOptions) {
@@ -67,6 +68,24 @@ describe('createMcpServer', () => {
     expect(request?.headers.get('authorization')).toBe('Bearer be_test');
     expect(request?.headers.get('user-agent')).toMatch(/^arsel-mcp\//);
     expect(JSON.parse(textOf(result))).toEqual({ object: 'list', has_more: false, data: [] });
+  });
+
+  it.each([
+    ['claude-code', `arsel-mcp/${VERSION} (stdio; claude-code/2.1.0)`],
+    ['Claude (Desktop) ✓', `arsel-mcp/${VERSION} (stdio; Claude Desktop /2.1.0)`],
+  ])('names the MCP client %s in the User-Agent', async (name, userAgent) => {
+    const api = fakeApi();
+    const server = createMcpServer(
+      new ArselClient({ token: 'be_test', baseUrl: 'https://api.test/v1', fetch: api.fetch, transport: 'stdio' }),
+    );
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverTransport);
+    const client = new Client({ name, version: '2.1.0' });
+    await client.connect(clientTransport);
+
+    await client.callTool({ name: 'list-tags', arguments: {} });
+
+    expect(api.requests[0]?.headers.get('user-agent')).toBe(userAgent);
   });
 
   it('turns a not-found into a hint pointing at the list tool', async () => {

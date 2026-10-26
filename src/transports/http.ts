@@ -96,7 +96,13 @@ export function runHttp(options: HttpOptions): Promise<Server> {
       const token = bearerToken(ctx.requestInfo?.headers.get('authorization'));
       if (!token) throw new Error('Missing credentials');
       return createMcpServer(
-        new ArselClient({ token, baseUrl: apiUrl, fetch: options.fetch }),
+        new ArselClient({
+          token,
+          baseUrl: apiUrl,
+          fetch: options.fetch,
+          transport: 'http',
+          callerUserAgent: ctx.requestInfo?.headers.get('user-agent') ?? undefined,
+        }),
         options,
       );
     }),

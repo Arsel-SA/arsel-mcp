@@ -31,6 +31,9 @@ export function createMcpServer(
     { name: 'arsel', version: VERSION },
     { instructions: INSTRUCTIONS },
   );
+  // Set from `initialize` on a 2025-era connection, and from each request's envelope on 2026-era
+  // ones; a stateless 2025-era HTTP request has neither, and the HTTP User-Agent stands in.
+  client.identifyClient(() => server.server.getClientVersion());
   registerTools(
     server,
     client,

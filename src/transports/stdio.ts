@@ -4,6 +4,6 @@ import { createMcpServer } from '../server.js';
 
 export function runStdio(apiKey: string, baseUrl: string) {
   return serveStdio(() =>
-    createMcpServer(new ArselClient({ token: apiKey, baseUrl })),
+    createMcpServer(new ArselClient({ token: apiKey, baseUrl, transport: 'stdio' })),
   );
 }

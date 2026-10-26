@@ -5,6 +5,10 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- API calls name the transport and the MCP client in their `User-Agent`, e.g. `arsel-mcp/1.2.0 (stdio; claude-code/2.1.0)`. Over stateless HTTP, where a request may not carry the client's name, the client's own `User-Agent` stands in.
+
 ## [1.1.0] - 2026-10-21
 
 ### Added
