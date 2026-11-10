@@ -131,6 +131,9 @@ function recoveryHint(
   if (error.code === 'monthly_quota_exceeded') {
     return "The organization's monthly quota is used up. Do not retry; tell the user.";
   }
+  if (error.code === 'event_not_found') {
+    return 'No event with this name is defined. Pick one from list-events, or define it with create-event if the user wants a new one.';
+  }
   if (error.code === 'event_limit_reached') {
     return 'The organization has reached its limit of event definitions. Reuse one from list-events, or tell the user.';
   }

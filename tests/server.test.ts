@@ -108,6 +108,22 @@ describe('createMcpServer', () => {
     expect(api.requests).toHaveLength(1);
   });
 
+  it('points an unknown event at list-events and create-event', async () => {
+    const api = fakeApi(() => ({
+      status: 404,
+      body: { status_code: 404, name: 'event_not_found', message: 'No event named "x" is defined in this organization.' },
+    }));
+    const client = await connect(api.fetch);
+
+    const result = await client.callTool({
+      name: 'send-event',
+      arguments: { event: 'x', email: 'a@b.co', data: {} },
+    });
+
+    expect(textOf(result)).toContain('list-events');
+    expect(textOf(result)).toContain('create-event');
+  });
+
   it('turns a not-found into a hint pointing at the list tool', async () => {
     const api = fakeApi(() => ({
       status: 404,
