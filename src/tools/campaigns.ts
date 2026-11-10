@@ -231,7 +231,7 @@ const inAppFields = {
 };
 
 const STATS_NOTE =
-  'Rates are fractions from 0 to 1, so 0.25 is 25%, and null while there is nothing to divide by. Totals cover the whole life of the campaign, and counts of distinct contacts can trail the others by up to 15 minutes.';
+  'Rates are fractions from 0 to 1, so 0.25 is 25%, and null while there is nothing to divide by. Totals cover the whole life of the campaign and are recounted periodically (every 15 minutes for email), so a campaign sent minutes ago can still read 0: check again later rather than reporting that nothing was delivered.';
 
 const stats = (
   channel: string,
