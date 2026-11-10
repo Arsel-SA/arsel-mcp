@@ -1,10 +1,10 @@
 # Arsel MCP Server
 
-An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, campaign results, templates and message logs, build segments, and draft campaigns and automations for you to review, send and turn on.
+An [MCP](https://modelcontextprotocol.io) server for [Arsel](https://arsel.sa). It lets AI agents such as Claude Code, Cursor and Claude Desktop read your contacts, lists, campaigns, campaign results, templates and message logs, build segments, draft and send campaigns, send transactional messages, and build automations for you to turn on.
 
 It is a thin client over the [Arsel API](https://docs.arsel.sa). Every tool is one API call made as you, on the organization you connect, so the agent sees exactly what you'd see through the API.
 
-> **Drafts only.** This server cannot send or schedule messages, or turn an automation on or off. Campaigns and automations it creates are saved as drafts, and you send or enable them from the Arsel dashboard.
+> **It can send.** Send tools deliver transactional email, SMS, WhatsApp and push, send or schedule campaigns, and record events that start automations. Your client asks you to approve every send, and the agent is told to show you what will go out and to whom first. It cannot turn an automation on or off; you do that from the Arsel dashboard.
 
 ## Requirements
 
@@ -101,8 +101,9 @@ claude mcp add --transport http arsel https://mcp.arsel.sa/mcp \
 | Message logs | `list-emails` `get-email` `list-sms-messages` `get-sms-message` `list-whatsapp-messages` `get-whatsapp-message` `list-push-notifications` `get-push-notification` |
 | Push devices | `list-contact-push-devices` `get-push-device-import` |
 | Account | `list-email-domains` `get-email-domain` `create-email-domain` `verify-email-domain` `list-sms-senders` `get-usage` |
+| Sending | `send-email` `send-sms` `send-whatsapp` `send-push` `send-email-campaign` `send-sms-campaign` `send-push-campaign` `cancel-email-campaign` `cancel-sms-campaign` `cancel-push-campaign` `activate-in-app-campaign` `send-event` |
 
-There are no delete, cancel or send tools. Read tools are marked read-only, so clients can run them without asking you each time. Create and update tools ask for your approval first.
+There are no delete tools. Read tools are marked read-only, so clients can run them without asking you each time. Create, update and send tools ask for your approval first. Send tools are also marked as reaching outside Arsel, and a send that fails with a timeout or server error is reported as possibly delivered, so the agent checks the message log or campaign status instead of sending again.
 
 A few writes take effect as soon as they run, with no draft to review afterwards: `update-segment` changes who the campaigns and automations using that segment reach, and `create-whatsapp-template` and `update-whatsapp-template` submit the template to Meta for review. The agent is told to confirm these with you before calling them.
 

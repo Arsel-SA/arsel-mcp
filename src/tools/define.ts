@@ -28,6 +28,10 @@ export interface ArselTool {
 
 const PATH_PARAM = /\{([a-z_]+)\}/g;
 
+// A send that timed out or failed upstream may still have gone out, and retrying it can double-send.
+const UNKNOWN_SEND_OUTCOME =
+  'The send may or may not have gone out. Do not retry: check the message log or the campaign status first, and tell the user.';
+
 export function pathParams(tool: ArselTool): string[] {
   return [...tool.path.matchAll(PATH_PARAM)].map((match) => match[1] ?? '');
 }
@@ -105,7 +109,9 @@ export function describeError(
   listTool?: string,
 ): string {
   if (error instanceof ArselNetworkError) {
-    return `${error.message}. Retrying shortly may succeed.`;
+    return tool.scope === 'send'
+      ? `${error.message}. ${UNKNOWN_SEND_OUTCOME}`
+      : `${error.message}. Retrying shortly may succeed.`;
   }
   if (!(error instanceof ArselApiError)) {
     return 'Unexpected error while calling the Arsel API.';
@@ -164,7 +170,9 @@ function recoveryHint(
     return `Rate limited. Wait ${error.retryAfterSeconds ?? 60} seconds before retrying.`;
   }
   if (error.status >= 500) {
-    return 'Arsel could not complete this request. Retrying shortly may succeed.';
+    return tool.scope === 'send'
+      ? UNKNOWN_SEND_OUTCOME
+      : 'Arsel could not complete this request. Retrying shortly may succeed.';
   }
   return undefined;
 }

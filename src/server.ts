@@ -7,14 +7,15 @@ import { VERSION } from './version.js';
 export { ArselClient, DEFAULT_API_URL } from './client.js';
 export type { ArselTool, ToolScope } from './tools/define.js';
 
-/** Every credential gets read and draft tools and nothing that sends or deletes. */
-export const DEFAULT_SCOPES: readonly ToolScope[] = ['read', 'write'];
+/** Every credential gets read, draft and send tools; nothing deletes. */
+export const DEFAULT_SCOPES: readonly ToolScope[] = ['read', 'write', 'send'];
 
 const INSTRUCTIONS = [
   'Arsel is a marketing engagement platform: email, SMS, WhatsApp, push and in-app messaging.',
   'Every tool acts on one organization: the one the user connected, or the one that owns the API key.',
   'List tools are cursor-paginated: while `has_more` is true, pass the last item `id` as `after`.',
-  'Campaigns created here stay drafts. This server cannot send or schedule messages; the user sends them from the Arsel dashboard.',
+  'Campaigns created here are drafts until a send tool sends or schedules them. Every send reaches real people and cannot be undone: show the user what will go out and to whom, and send only on their explicit go-ahead.',
+  'Automations cannot be enabled or disabled here; the user does that from the Arsel dashboard.',
 ].join('\n');
 
 export interface ServerOptions {

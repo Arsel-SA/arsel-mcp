@@ -19,12 +19,33 @@ describe('tool catalogue', () => {
     }
   });
 
-  it('exposes read and draft tools, and nothing that sends', () => {
+  it('exposes read, draft and send tools', () => {
     const count = (scope: string) =>
       ALL_TOOLS.filter((t) => t.scope === scope).length;
     expect(count('read')).toBe(49);
     expect(count('write')).toBe(35);
-    expect(count('send')).toBe(0);
+    expect(count('send')).toBe(12);
+  });
+
+  it.each([
+    ['send-email', '/email/send'],
+    ['send-sms', '/sms/send'],
+    ['send-whatsapp', '/whatsapp/send'],
+    ['send-push', '/push/send'],
+    ['send-email-campaign', '/email/campaigns/{id}/send'],
+    ['send-sms-campaign', '/sms/campaigns/{id}/send'],
+    ['send-push-campaign', '/push/campaigns/{id}/send'],
+    ['cancel-email-campaign', '/email/campaigns/{id}/cancel'],
+    ['cancel-sms-campaign', '/sms/campaigns/{id}/cancel'],
+    ['cancel-push-campaign', '/push/campaigns/{id}/cancel'],
+    ['activate-in-app-campaign', '/in-app/campaigns/{id}/activate'],
+    ['send-event', '/events/send'],
+  ])('%s sends with POST %s and asks for confirmation', (name, path) => {
+    const tool = byName(name);
+    expect(tool.scope).toBe('send');
+    expect(tool.method).toBe('POST');
+    expect(tool.path).toBe(path);
+    expect(tool.destructive).toBe(true);
   });
 
   it('only reads with GET', () => {
@@ -79,7 +100,7 @@ describe('tool catalogue', () => {
   it('only names tools that exist in its descriptions', () => {
     const names = new Set(ALL_TOOLS.map((t) => t.name));
     const mentioned = (text: string) =>
-      text.match(/\b(?:list|get|create|update|verify)-[a-z]+(?:-[a-z]+)*\b/g) ?? [];
+      text.match(/\b(?:list|get|create|update|verify|send|cancel|activate)-[a-z]+(?:-[a-z]+)*\b/g) ?? [];
     for (const tool of ALL_TOOLS) {
       // The whole schema as text, so descriptions nested inside it count too.
       const schema = JSON.stringify(

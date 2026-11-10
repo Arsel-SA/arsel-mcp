@@ -24,8 +24,9 @@ npm run openapi:update # refresh openapi/arsel-api.json from the live API
 - **Input schemas are handwritten zod** and use the API's own field names. The contract test holds
   them to `openapi/arsel-api.json`: when it fails, fix the tool, not the test.
 - **Scopes gate what is registered.** `read` is GET, `write` creates or edits drafts, and `send`
-  reaches recipients. `DEFAULT_SCOPES` is `read` + `write` because API keys carry no scopes yet. Add
-  `send`, delete or cancel tools only once keys can be scoped to them.
+  reaches recipients. `DEFAULT_SCOPES` is `read` + `write` + `send`. Send tools are
+  `destructive` and tell the agent to confirm what goes out and to whom. No delete tools until keys
+  can be scoped to them.
 - **Tool names** are kebab-case verb-noun (`list-contacts`), and the catalogue test enforces it.
   `get-x` / `update-x` 404 hints point at `list-x`, which must exist at the parent path.
 - **Errors are results, not throws.** `describeError` turns API errors into text that tells the agent

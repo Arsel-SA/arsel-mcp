@@ -20,16 +20,18 @@ async function connect(fetch: typeof globalThis.fetch, options?: ServerOptions) 
 }
 
 describe('createMcpServer', () => {
-  it('lists every read and draft tool with annotations', async () => {
+  it('lists every tool with annotations', async () => {
     const client = await connect(fakeApi().fetch);
 
     const { tools } = await client.listTools();
     const get = tools.find((t) => t.name === 'get-contact');
     const update = tools.find((t) => t.name === 'update-contact');
+    const send = tools.find((t) => t.name === 'send-email-campaign');
 
-    expect(tools).toHaveLength(84);
+    expect(tools).toHaveLength(96);
     expect(get?.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
     expect(update?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true });
+    expect(send?.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, openWorldHint: true });
   });
 
   it('leaves out tools the scopes do not allow', async () => {
@@ -42,7 +44,7 @@ describe('createMcpServer', () => {
       path: '/email/send',
       inputSchema: z.object({}),
     };
-    const client = await connect(fakeApi().fetch, { tools: [sendTool] });
+    const client = await connect(fakeApi().fetch, { tools: [sendTool], scopes: ['read', 'write'] });
 
     const { tools } = await client.listTools();
 
@@ -86,6 +88,24 @@ describe('createMcpServer', () => {
     await client.callTool({ name: 'list-tags', arguments: {} });
 
     expect(api.requests[0]?.headers.get('user-agent')).toBe(userAgent);
+  });
+
+  it('tells the agent not to retry a send that failed upstream, since it may have gone out', async () => {
+    const api = fakeApi(() => ({
+      status: 503,
+      body: { status_code: 503, name: 'service_unavailable', message: 'Upstream timeout' },
+    }));
+    const client = await connect(api.fetch);
+
+    const result = await client.callTool({
+      name: 'send-sms',
+      arguments: { from: 'Arsel', to: ['+966500000000'], content: 'Your code is 1234' },
+    });
+
+    expect(result.isError).toBe(true);
+    expect(textOf(result)).toContain('Do not retry');
+    expect(textOf(result)).not.toContain('Retrying shortly may succeed');
+    expect(api.requests).toHaveLength(1);
   });
 
   it('turns a not-found into a hint pointing at the list tool', async () => {

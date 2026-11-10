@@ -6,6 +6,7 @@ import { contactTools } from './contacts.js';
 import type { ArselTool } from './define.js';
 import { dataModelTools } from './data-model.js';
 import { messageTools } from './messages.js';
+import { sendTools } from './sends.js';
 import { templateTools } from './templates.js';
 
 export const ALL_TOOLS: readonly ArselTool[] = [
@@ -16,5 +17,6 @@ export const ALL_TOOLS: readonly ArselTool[] = [
   ...templateTools,
   ...dataModelTools,
   ...messageTools,
+  ...sendTools,
   ...accountTools,
 ];

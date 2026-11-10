@@ -40,7 +40,7 @@ export const AUDIENCE_NOTE =
   'The audience is the union of `list_ids`, `tag_ids` and `segment_ids`. Find lists with list-lists, tags with list-tags and segments with list-segments.';
 
 export const DRAFT_NOTE =
-  'The campaign is saved as a `draft`. This server cannot send or schedule it: the user does that from the Arsel dashboard.';
+  'The campaign is saved as a `draft`; nothing goes out until it is sent with the matching send tool or from the Arsel dashboard.';
 
 export const AUTOMATION_NOTE =
   "This can start the organization's active automations, which may send messages.";

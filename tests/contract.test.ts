@@ -154,9 +154,23 @@ function mismatches(ours: Schema, theirs: Schema, walk: Walk, at = 'input'): str
   return problems;
 }
 
+/**
+ * A body that is an untagged union of object shapes (one event or a batch of them) is held to the
+ * branch sharing the most fields with the tool, so the tool's fields are still checked.
+ */
+function branchFor(tool: ArselTool, api: Schema): Schema {
+  const branches = api.oneOf ?? api.anyOf;
+  if (api.properties || !branches || variants(api, spec.components.schemas)) return api;
+  const fields = Object.keys(toolInput(tool).properties ?? {});
+  const shared = (branch: Schema) =>
+    Object.keys(resolve(branch, spec.components.schemas).properties ?? {}).filter((f) => fields.includes(f)).length;
+  const best = [...branches].sort((x, y) => shared(y) - shared(x))[0];
+  return best ? resolve(best, spec.components.schemas) : api;
+}
+
 /** The API's input less the fields the tool withholds, each of which must still exist there. */
 function offeredInput(tool: ArselTool, operation: Operation): Schema {
-  const api = specInput(tool, operation);
+  const api = branchFor(tool, specInput(tool, operation));
   const withheld = tool.withheld ?? [];
   const missing = withheld.filter((name) => !api.properties?.[name]);
   if (missing.length) throw new Error(`${tool.name} withholds [${missing}], which the API does not have`);
