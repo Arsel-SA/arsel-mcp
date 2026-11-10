@@ -3,7 +3,11 @@ import type { ArselTool } from './define.js';
 import { id } from './shared.js';
 
 const CONFIRM =
-  'This reaches real recipients and cannot be undone. Before calling it, show the user what will go out and to whom, and wait for their go-ahead.';
+  'This reaches real people, and a message that has gone out cannot be recalled. Before calling it, show the user what will go out and to whom, and wait for their go-ahead.';
+
+// The campaign GETs return no list, tag or segment ids, so the agent can only vouch for an audience it set itself.
+const AUDIENCE_CHECK =
+  "Tell the user the audience: if you set it in this conversation, name those lists, tags and segments and their sizes (get-list, get-segment). The campaign's own record doesn't include its audience, so otherwise ask the user to confirm it in the Arsel dashboard.";
 
 const variables = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
@@ -19,7 +23,7 @@ const scheduledAt = z
   .string()
   .optional()
   .describe(
-    'ISO 8601 date-time in the future, e.g. 2026-12-01T09:00:00+03:00, to schedule the campaign. Omit to send now.',
+    "ISO 8601 date-time in the future, with the user's UTC offset (e.g. 2026-12-01T09:00:00+03:00 for Saudi Arabia), to schedule the campaign. Omit to send now.",
   );
 
 const contactIdentifiers = {
@@ -44,6 +48,7 @@ const campaignSend = (
   channel: string,
   slug: string,
   reaches: string,
+  cost = '',
 ): ArselTool => ({
   name: `send-${slug}-campaign`,
   title: `Send ${channel} Campaign`,
@@ -51,7 +56,7 @@ const campaignSend = (
   destructive: true,
   method: 'POST',
   path: `/${slug}/campaigns/{id}/send`,
-  description: `Send the ${channel === 'SMS' ? channel : channel.toLowerCase()} campaign now, or schedule it with \`scheduled_at\`. It goes to ${reaches}. The campaign must be a \`draft\` or \`scheduled\` with every required field set; call get-${slug}-campaign first and tell the user its audience and content. ${CONFIRM} A scheduled, queued or sending campaign can be stopped with cancel-${slug}-campaign.`,
+  description: `Send the ${channel === 'SMS' ? channel : channel.toLowerCase()} campaign now, or schedule it with \`scheduled_at\`. It goes to ${reaches}. The campaign must be a \`draft\` or \`scheduled\` with every required field set. Call get-${slug}-campaign first and show the user its content. ${AUDIENCE_CHECK}${cost} ${CONFIRM} A scheduled, queued or sending campaign can be stopped with cancel-${slug}-campaign.`,
   inputSchema: z.object({
     id: id(`${slug} campaign`),
     scheduled_at: scheduledAt,
@@ -125,7 +130,7 @@ export const sendTools: ArselTool[] = [
     destructive: true,
     method: 'POST',
     path: '/sms/send',
-    description: `Send a transactional SMS, such as a one-time code or a delivery update, to up to 100 numbers in one country. Arabic or emoji text is billed in 70-character parts, Latin text in 160. ${CONFIRM} See what was sent with list-sms-messages.`,
+    description: `Send a transactional SMS, such as a one-time code or a delivery update, to up to 100 numbers in one country. Each number is billed per part: 70 characters for Arabic or emoji text, 160 for Latin. ${CONFIRM} See what was sent with list-sms-messages.`,
     inputSchema: z.object({
       from: z
         .string()
@@ -150,7 +155,7 @@ export const sendTools: ArselTool[] = [
     destructive: true,
     method: 'POST',
     path: '/whatsapp/send',
-    description: `Send one WhatsApp message from an \`approved\` template; WhatsApp allows no free text to start a conversation. Find templates and the \`parameters\` each needs with list-whatsapp-templates and get-whatsapp-template. ${CONFIRM} See what was sent with list-whatsapp-messages.`,
+    description: `Send one WhatsApp message from an \`approved\` template; WhatsApp allows no free text to start a conversation. Find templates and the \`parameters\` each needs with list-whatsapp-templates and get-whatsapp-template. Each message is charged to the organization's WhatsApp balance. ${CONFIRM} See what was sent with list-whatsapp-messages.`,
     inputSchema: z.object({
       to: z.string().describe('Recipient in E.164 format, e.g. +966501234567.'),
       template_name: z.string().describe('Name of an `approved` template.'),
@@ -207,7 +212,12 @@ export const sendTools: ArselTool[] = [
     }),
   },
   campaignSend('Email', 'email', 'every subscribed contact in its lists, tags and segments'),
-  campaignSend('SMS', 'sms', 'every subscribed contact in its lists, tags and segments'),
+  campaignSend(
+    'SMS',
+    'sms',
+    'every subscribed contact in its lists, tags and segments',
+    ' Every recipient is billed for each part of the message, so tell the user how many parts it is (`num_segments` on the campaign).',
+  ),
   campaignSend('Push', 'push', "its audience's app users who allow push; the rest are skipped"),
   campaignCancel('Email', 'email'),
   campaignCancel('SMS', 'sms'),
@@ -219,7 +229,7 @@ export const sendTools: ArselTool[] = [
     destructive: true,
     method: 'POST',
     path: '/in-app/campaigns/{id}/activate',
-    description: `Make an in-app campaign live: devices pick it up on their next app open and show it to its audience. Call get-in-app-campaign first and tell the user its content and audience. ${CONFIRM}`,
+    description: `Make an in-app campaign live: devices pick it up on their next app open and show it to its audience. Call get-in-app-campaign first and tell the user its content and audience (\`list_ids\`, \`tag_ids\`, \`segment_ids\`). Before calling it, wait for their go-ahead. It stays live until the user pauses or ends it in the Arsel dashboard.`,
     inputSchema: z.object({ id: id('in-app campaign') }),
   },
   {
@@ -229,7 +239,7 @@ export const sendTools: ArselTool[] = [
     destructive: true,
     method: 'POST',
     path: '/events/send',
-    description: `Record that a contact did something, e.g. \`order.completed\`. The event must be defined (list-events) and \`data\` must match its schema. Active automations triggered by this event run for the contact and may send them messages, and an unknown contact is created. ${CONFIRM}`,
+    description: `Record that a contact did something, e.g. \`order.completed\`. The event must be defined (list-events) and \`data\` must match its schema. Enabled automations triggered by this event run for the contact and may message them, and a contact that doesn't exist yet is created. Before calling it, check list-automations for enabled automations with this trigger, tell the user what they will do, and wait for their go-ahead.`,
     inputSchema: z.object({
       event: z.string().describe('Name of a defined event, from list-events.'),
       ...contactIdentifiers,
