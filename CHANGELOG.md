@@ -5,6 +5,8 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-10
+
 ### Added
 
 - Send tools: `send-email`, `send-sms`, `send-whatsapp` and `send-push` for transactional messages; `send-email-campaign`, `send-sms-campaign` and `send-push-campaign` to send a campaign now or at `scheduled_at`; `cancel-email-campaign`, `cancel-sms-campaign` and `cancel-push-campaign`; `activate-in-app-campaign`; and `send-event`, which records an event and starts the automations it triggers. Every send tool is marked destructive and open-world, so clients ask before each call.
@@ -13,8 +15,12 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 - The default scopes now include `send`, so every credential gets the send tools.
 - A send that times out or fails with a server error tells the agent not to retry, since it may already have gone out.
-
 - API calls name the transport and the MCP client in their `User-Agent`, e.g. `arsel-mcp/1.2.0 (stdio; claude-code/2.1.0)`. Over stateless HTTP, where a request may not carry the client's name, the client's own `User-Agent` stands in.
+
+### Fixed
+
+- An unknown event name points the agent at `list-events` and `create-event`.
+- Campaign stats say they can read 0 for a campaign sent minutes ago, instead of implying nothing was delivered.
 
 ## [1.1.0] - 2026-10-21
 
