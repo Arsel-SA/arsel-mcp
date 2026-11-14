@@ -155,6 +155,12 @@ function recoveryHint(
   if (error.code === 'automation_enabled') {
     return 'This automation is live, so its steps cannot be replaced. Ask the user to disable it in the Arsel dashboard first, or build the change on a copy from clone-automation.';
   }
+  if (error.code === 'channel_not_configured') {
+    return "Something this send needs is not set up for the organization, as the message above says. Do not retry unchanged. Either target only what is set up (a push campaign's `target_platforms` via update-push-campaign; an SMS campaign's country is changed by the user in the Arsel dashboard), or tell the user to set it up: in the Arsel dashboard, or with Arsel support where the message says so.";
+  }
+  if (error.code === 'sender_not_approved') {
+    return "No approved SMS sender covers the countries this campaign targets. Do not retry unchanged. Check list-sms-senders and the campaign's `country` (get-sms-campaign). If the campaign is restricted to a country without a sender, the user can change or clear that country in the Arsel dashboard; otherwise tell the user to register a sender with Arsel support.";
+  }
   if (error.code === 'validation_error' || error.code === 'bad_request') {
     return `Correct the input named above and call ${tool.name} again.`;
   }
