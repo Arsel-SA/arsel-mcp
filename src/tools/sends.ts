@@ -5,9 +5,8 @@ import { id } from './shared.js';
 const CONFIRM =
   'This reaches real people, and a message that has gone out cannot be recalled. Before calling it, show the user what will go out and to whom, and wait for their go-ahead.';
 
-// The campaign GETs return no list, tag or segment ids, so the agent can only vouch for an audience it set itself.
 const AUDIENCE_CHECK =
-  "Tell the user the audience: if you set it in this conversation, name those lists, tags and segments and their sizes (get-list, get-segment). The campaign's own record doesn't include its audience, so otherwise ask the user to confirm it in the Arsel dashboard.";
+  "Tell the user the audience: name the lists, tags and segments in its `list_ids`, `tag_ids` and `segment_ids`, with their sizes (get-list, get-tag, get-segment). One that is not found has been deleted: say so.";
 
 const variables = z
   .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))

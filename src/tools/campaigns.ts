@@ -310,7 +310,7 @@ export const campaignTools: ArselTool[] = [
     method: 'GET',
     path: '/sms/campaigns/{id}',
     description:
-      'Get one SMS campaign: status, content, sender, segment count and schedule.',
+      'Get one SMS campaign: status, content, sender, segment count, audience and schedule.',
     inputSchema: z.object({ id: id('SMS campaign') }),
   },
   {
@@ -362,7 +362,7 @@ export const campaignTools: ArselTool[] = [
     method: 'GET',
     path: '/push/campaigns/{id}',
     description:
-      'Get one push campaign: status, notification content, targeting and schedule.',
+      'Get one push campaign: status, notification content, targeting, audience and schedule.',
     inputSchema: z.object({ id: id('push campaign') }),
   },
   {

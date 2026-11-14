@@ -5,6 +5,10 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `get-email-campaign`, `get-sms-campaign` and `get-push-campaign` return the campaign's audience (`list_ids`, `tag_ids`, `segment_ids`), and the campaign send tools tell the agent to read it from there.
+
 ## [1.2.0] - 2026-11-10
 
 ### Added

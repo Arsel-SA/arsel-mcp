@@ -210,7 +210,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EmailCampaignResponseDto"
+                  "$ref": "#/components/schemas/EmailCampaignDetailResponseDto"
                 }
               }
             }
@@ -882,7 +882,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SmsCampaignResponseDto"
+                  "$ref": "#/components/schemas/SmsCampaignDetailResponseDto"
                 }
               }
             }
@@ -6366,7 +6366,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PushCampaignResponseDto"
+                  "$ref": "#/components/schemas/PushCampaignDetailResponseDto"
                 }
               }
             }
@@ -10765,6 +10765,11 @@
             "format": "uuid",
             "example": "0192a1b2-c3d4-7e5f-9000-0000000000a1"
           },
+          "topic_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
           "scheduled_at": {
             "type": "string",
             "nullable": true,
@@ -10798,10 +10803,138 @@
           "reply_to",
           "status",
           "template_id",
+          "topic_id",
           "scheduled_at",
           "sent_at",
           "created_at",
           "updated_at"
+        ]
+      },
+      "EmailCampaignDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Summer Sale 2026"
+          },
+          "subject": {
+            "type": "string",
+            "nullable": true,
+            "example": "50% Off Everything!"
+          },
+          "preheader": {
+            "type": "string",
+            "nullable": true,
+            "example": "Limited time offer"
+          },
+          "from_name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Acme Store"
+          },
+          "from": {
+            "type": "string",
+            "nullable": true,
+            "example": "marketing@acme.com"
+          },
+          "reply_to": {
+            "type": "string",
+            "nullable": true,
+            "example": "support@acme.com"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "queued",
+              "sending",
+              "paused",
+              "sent",
+              "failed",
+              "cancelled",
+              "archived"
+            ],
+            "example": "draft"
+          },
+          "template_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-0000000000a1"
+          },
+          "topic_id": {
+            "type": "string",
+            "nullable": true,
+            "format": "uuid"
+          },
+          "scheduled_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-04-01T09:00:00.000Z"
+          },
+          "sent_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-04-01T09:05:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "list_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "tag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "segment_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "subject",
+          "preheader",
+          "from_name",
+          "from",
+          "reply_to",
+          "status",
+          "template_id",
+          "topic_id",
+          "scheduled_at",
+          "sent_at",
+          "created_at",
+          "updated_at",
+          "list_ids",
+          "tag_ids",
+          "segment_ids"
         ]
       },
       "EmailCampaignListResponseDto": {
@@ -11093,6 +11226,119 @@
           "sent_at",
           "created_at",
           "updated_at"
+        ]
+      },
+      "SmsCampaignDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Eid Sale Announcement"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "SMS blast for Eid promotion"
+          },
+          "content": {
+            "type": "string",
+            "nullable": true,
+            "example": "Hello! Check out our Eid sale at..."
+          },
+          "from": {
+            "type": "string",
+            "nullable": true,
+            "example": "AcmeStore"
+          },
+          "country": {
+            "type": "string",
+            "nullable": true,
+            "example": "KSA"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "queued",
+              "sending",
+              "paused",
+              "sent",
+              "failed",
+              "cancelled",
+              "archived"
+            ],
+            "example": "draft"
+          },
+          "num_segments": {
+            "type": "number",
+            "description": "Number of SMS segments this message will use (matches Twilio's num_segments).",
+            "example": 1
+          },
+          "scheduled_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-04-01T09:00:00.000Z"
+          },
+          "sent_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-04-01T09:05:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-03-08T12:00:00.000Z"
+          },
+          "list_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "tag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "segment_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "content",
+          "from",
+          "country",
+          "status",
+          "scheduled_at",
+          "sent_at",
+          "created_at",
+          "updated_at",
+          "list_ids",
+          "tag_ids",
+          "segment_ids"
         ]
       },
       "SmsCampaignListResponseDto": {
@@ -14029,6 +14275,181 @@
           "sent_at",
           "created_at",
           "updated_at"
+        ]
+      },
+      "PushCampaignDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "0192a1b2-c3d4-7e5f-9000-abcdef123456"
+          },
+          "name": {
+            "type": "string",
+            "example": "Flash sale — 6h only"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Ramadan flash sale, app users only"
+          },
+          "title": {
+            "type": "string",
+            "example": "Doors close at midnight"
+          },
+          "body": {
+            "type": "string",
+            "example": "Everything 40% off for the next six hours."
+          },
+          "image_url": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://cdn.example.com/sale.png"
+          },
+          "icon_url": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://cdn.example.com/icon.png"
+          },
+          "deep_link": {
+            "type": "string",
+            "nullable": true,
+            "example": "myapp://sale"
+          },
+          "android_channel_id": {
+            "type": "string",
+            "nullable": true,
+            "example": "promotions"
+          },
+          "ttl_seconds": {
+            "type": "number",
+            "example": 86400
+          },
+          "priority": {
+            "type": "string",
+            "example": "high"
+          },
+          "action_buttons": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DevApiPushActionButtonDto"
+            }
+          },
+          "data_payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "example": {
+              "order_id": "123"
+            }
+          },
+          "target_platforms": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "android",
+                "ios",
+                "web"
+              ]
+            }
+          },
+          "throttle_minutes": {
+            "type": "number",
+            "nullable": true,
+            "example": 15
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "scheduled",
+              "queued",
+              "sending",
+              "paused",
+              "sent",
+              "failed",
+              "cancelled",
+              "archived"
+            ],
+            "example": "draft"
+          },
+          "smart_sending_enabled": {
+            "type": "boolean",
+            "example": true
+          },
+          "scheduled_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-09-01T09:00:00.000Z"
+          },
+          "sent_at": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time",
+            "example": "2026-09-01T09:05:00.000Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-10T12:00:00.000Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-08-10T12:00:00.000Z"
+          },
+          "list_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "tag_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          },
+          "segment_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "title",
+          "body",
+          "image_url",
+          "icon_url",
+          "deep_link",
+          "android_channel_id",
+          "ttl_seconds",
+          "priority",
+          "action_buttons",
+          "data_payload",
+          "target_platforms",
+          "throttle_minutes",
+          "status",
+          "smart_sending_enabled",
+          "scheduled_at",
+          "sent_at",
+          "created_at",
+          "updated_at",
+          "list_ids",
+          "tag_ids",
+          "segment_ids"
         ]
       },
       "PushCampaignListResponseDto": {
