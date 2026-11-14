@@ -5,6 +5,10 @@ versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Channel and SMS sender set-up errors (`channel_not_configured`, `sender_not_approved`) return a set-up hint instead of telling the agent to correct the input.
+
 ## [1.2.0] - 2026-11-10
 
 ### Added

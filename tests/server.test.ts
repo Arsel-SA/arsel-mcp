@@ -260,6 +260,20 @@ describe('createMcpServer', () => {
     expect(textOf(result)).not.toContain('Wait');
   });
 
+  it.each([
+    ['channel_not_configured', 'send-push-campaign', 'None of the targeted platforms are enabled for this organization', ['update-push-campaign', 'Arsel support']],
+    ['sender_not_approved', 'send-sms-campaign', 'No approved marketing sender is provisioned for KSA.', ['change or clear that country in the Arsel dashboard', 'register a sender with Arsel support']],
+  ])('points %s at set-up instead of the input', async (name, tool, message, hints) => {
+    const api = fakeApi(() => ({ status: 400, body: { status_code: 400, name, message } }));
+    const client = await connect(api.fetch);
+
+    const result = await client.callTool({ name: tool, arguments: { id: '00000000-0000-4000-8000-000000000001' } });
+
+    for (const hint of hints) expect(textOf(result)).toContain(hint);
+    expect(textOf(result)).toContain('Do not retry unchanged');
+    expect(textOf(result)).not.toContain('Correct the input');
+  });
+
   it('rejects input the schema rejects without calling the API', async () => {
     const api = fakeApi();
     const client = await connect(api.fetch);
